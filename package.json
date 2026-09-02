@@ -1,6 +1,6 @@
 {
   "name": "dsh-git-graph",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "DeepSeek Harness 集成 Git 视图插件（当前为 Git 专用：文件浏览/编辑暂时停用）：宿主半提供 /git JSON API（status/branch/diff/stage/commit/log/blame/cat 等），浏览器半提供 Git 页签 UI。Git plugin for DeepSeek Harness (currently Git-only; the file browser is temporarily disabled): host /git JSON API + browser Git tab UI.",
   "type": "module",
   "main": "lib/index.js",
