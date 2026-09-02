@@ -47,5 +47,14 @@ const c3 = s.split(oldDshCm).length - 1;
 if (c3 !== 1) throw new Error(`expected dshCm definition to appear once, found ${c3}`);
 s = s.split(oldDshCm).join(newDshCm);
 
+// Patch 4: git-only mode — drop the "文件" conversation.view tab (the file
+// editor is disabled for now; keep the Git tab).
+const filesAnchor = s.indexOf('id: "files"');
+if (filesAnchor === -1) throw new Error("expected files tab registration to appear once");
+const regStart = s.lastIndexOf('ctx.slots.inject("conversation.view", () =>', filesAnchor);
+const filesIdx = s.indexOf("FilesView,", regStart);
+const regEnd = s.indexOf(");", filesIdx) + 2;
+s = s.slice(0, regStart) + '      // "文件" page tab disabled for now (Git only).' + s.slice(regEnd);
+
 writeFileSync(file, s);
-console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback");
+console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs");

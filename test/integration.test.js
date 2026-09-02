@@ -63,7 +63,7 @@ before(async () => {
   await gitRun(repo, ["commit", "-q", "-m", "initial"]);
 
   routes = captureRoutes();
-  assert.equal(routes.length, 2, "apply() must register exactly /git and /fs");
+  assert.equal(routes.length, 1, "git-only mode: apply() must register exactly /git");
 
   server = http.createServer((req, res) => {
     const route = routes.find((r) => req.url === r.path);
@@ -83,12 +83,12 @@ after(async () => {
   if (repo) await rm(repo, { recursive: true, force: true });
 });
 
-test("apply() exposes the two routes", async () => {
+test("apply() exposes /git only (file browser /fs disabled for now)", async () => {
   assert.ok(routes.some((r) => r.path === "/git"));
-  assert.ok(routes.some((r) => r.path === "/fs"));
+  assert.ok(!routes.some((r) => r.path === "/fs"), "git-only mode: /fs must not be registered");
 });
 
-test("apply() skips gracefully when /git + /fs are already registered (desktop built-in conflict)", () => {
+test("apply() skips gracefully when /git is already registered (desktop built-in conflict)", () => {
   const exact = new Map();
   const ws = {
     register(route) {
@@ -99,10 +99,9 @@ test("apply() skips gracefully when /git + /fs are already registered (desktop b
   };
   // Simulate the desktop app's built-in git viewer already owning the routes.
   ws.register({ kind: "exact", path: "/git", handler: () => {} });
-  ws.register({ kind: "exact", path: "/fs", handler: () => {} });
   const ctx = { webServer: ws, effect(cb) { return cb(); } };
   assert.doesNotThrow(() => apply(ctx)); // must not crash the layer
-  assert.equal(exact.size, 2); // routes stay owned by the built-in plugin
+  assert.equal(exact.size, 1); // routes stay owned by the built-in plugin
 });
 
 test("/git status reports the working tree split", async () => {
@@ -167,47 +166,8 @@ test("/git rejects unknown ops, bad JSON and non-POST", async () => {
   assert.equal(wrongMethod.error.code, "method");
 });
 
-test("/fs tree lists the workspace files", async () => {
-  await mkdir(join(repo, "sub"), { recursive: true });
-  await writeFile(join(repo, "sub", "c.txt"), "x\n");
+test("/fs is not served in git-only mode", async () => {
   const res = await post("/fs", { op: "tree", root: repo });
-  assert.equal(res.ok, true);
-  const names = res.value.files.map((f) => f.name);
-  assert.ok(names.includes("a.txt"));
-  assert.ok(names.includes("b.txt"));
-  assert.ok(names.includes("c.txt"));
-});
-
-test("/fs read returns text content", async () => {
-  const res = await post("/fs", { op: "read", root: repo, path: join(repo, "b.txt") });
-  assert.equal(res.ok, true);
-  assert.equal(res.value.type, "text");
-  assert.equal(res.value.text, "new\n");
-});
-
-test("/fs read degrades a file over the preview cap to a binary marker", async () => {
-  const big = join(repo, "big.txt");
-  await writeFile(big, "x".repeat(1_100_000)); // > 1MiB text cap
-  const res = await post("/fs", { op: "read", root: repo, path: big });
-  assert.equal(res.ok, true);
-  assert.equal(res.value.type, "binary");
-  assert.equal(res.value.size, 1_100_000);
-  assert.equal("text" in res.value, false, "must not ship the full content");
-});
-
-test("/fs write persists content and can be read back", async () => {
-  const target = join(repo, "sub", "deep", "z.txt");
-  await mkdir(join(repo, "sub", "deep"), { recursive: true });
-  const w = await post("/fs", { op: "write", root: repo, path: target, content: "written\n" });
-  assert.equal(w.ok, true, JSON.stringify(w));
-  assert.equal(w.value.written, target);
-  assert.equal(await readFile(target, "utf8"), "written\n");
-  const r = await post("/fs", { op: "read", root: repo, path: target });
-  assert.equal(r.value.text, "written\n");
-});
-
-test("/fs read blocks a path that escapes the workspace root", async () => {
-  const res = await post("/fs", { op: "read", root: repo, path: "../outside.txt" });
   assert.equal(res.ok, false);
-  assert.equal(res.error.code, "invalid-path");
+  assert.equal(res.error.code, "no-route");
 });

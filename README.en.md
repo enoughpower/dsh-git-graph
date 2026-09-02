@@ -9,6 +9,10 @@ the browser half adds a **Git** button at the sidebar foot that opens a panel bo
 session's working directory (Git tab + "Files" tab). The UI copy is bilingual (Chinese / English),
 following the dsh locale service.
 
+> **Currently a Git-only build**: the "Files" browse/edit tab and the corresponding `/fs` API are
+> temporarily disabled (the CodeMirror file editor deadlocks in a MutationObserver loop on dsh
+> 0.1.2-alpha.5). The Git tab is unaffected.
+
 ---
 
 ## Features
