@@ -1,10 +1,10 @@
-# dsh-git-graph: integrated Git + file-browser plugin.
+# dsh-git-graph: Git view plugin.
 #
 # - host half (this package's `main`): a `/git` JSON API that runs `git` in
 #   the requested directory (status / diff / log / commit / branch / push /
-#   pull / blame / cat 等), plus a `/fs` file API (tree / read / write).
-# - client half (this package's `./client`): a Git tab + file-browser tab UI
-#   bound to the current session's working directory.
+#   pull / blame / cat 等).
+# - client half (this package's `./client`): a Git tab UI bound to the
+#   current session's working directory.
 - insert:
     - id: git-graph
       name: 'dsh-git-graph'
