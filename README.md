@@ -2,7 +2,7 @@
 
 > DeepSeek Harness 集成 **Git** 与 **文件浏览/编辑** 一体化的插件。
 
-`@enoughpower/dsh-git-graph` 把 Git 操作（状态 / 分支 / 差异 / 提交 / 推送拉取 / 提交图 / 溯源）与工作区
+`dsh-git-graph` 把 Git 操作（状态 / 分支 / 差异 / 提交 / 推送拉取 / 提交图 / 溯源）与工作区
 文件浏览编辑（文件树 / 预览 / 编辑 / 保存）打包成一个可直接安装的 dsh 插件。宿主半注册 `/git` 与 `/fs`
 两个 JSON API，浏览器半在侧栏底部加一个 **Git** 按钮，打开与当前会话工作目录绑定的面板（Git 页签 +
 「文件」页签）。界面文案中英双语（跟随 dsh locale 服务）。
@@ -53,7 +53,7 @@
 dsh plugin --profile web add /path/to/dsh-git-graph
 
 # 或已发布的 npm 包
-dsh plugin --profile web add @enoughpower/dsh-git-graph
+dsh plugin --profile web add dsh-git-graph
 ```
 
 ---
@@ -160,7 +160,7 @@ node --test test/integration.test.js
   做端到端冒烟，结束后清理临时目录。要求 `git` 在 `PATH` 中。
 - `lib/client.js` 是预编译产物（esbuild，单文件、无 React 冲突的命令式 CodeMirror 编辑器 + One Dark 主题）。
   本仓库直接复用桌面版已编译 bundle，宿主/浏览器两半用同一包名在 dsh 客户端模块系统里注册
-  （`window.__ModuleLoader__.load({ id: "@enoughpower/dsh-git-graph", factory })`）。
+  （`window.__ModuleLoader__.load({ id: "dsh-git-graph", factory })`）。
 
 ---
 

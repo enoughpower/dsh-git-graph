@@ -1,6 +1,6 @@
 {
-  "name": "@enoughpower/dsh-git-graph",
-  "version": "0.1.1",
+  "name": "dsh-git-graph",
+  "version": "0.1.0",
   "description": "DeepSeek Harness 集成 Git 与文件浏览插件：宿主半提供 /git JSON API（status/branch/diff/stage/commit/log/blame/cat 等）与 /fs 文件 API（tree/read/write），浏览器半提供 Git 页签与文件浏览页签 UI。Integrated Git & file-browser plugin for DeepSeek Harness: host /git JSON API + /fs file API, browser Git tab + file-browser UI.",
   "type": "module",
   "main": "lib/index.js",
