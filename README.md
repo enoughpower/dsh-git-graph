@@ -5,12 +5,7 @@
 `@enoughpower/dsh-git-graph` 把 Git 操作（状态 / 分支 / 差异 / 提交 / 推送拉取 / 提交图 / 溯源）与工作区
 文件浏览编辑（文件树 / 预览 / 编辑 / 保存）打包成一个可直接安装的 dsh 插件。宿主半注册 `/git` 与 `/fs`
 两个 JSON API，浏览器半在侧栏底部加一个 **Git** 按钮，打开与当前会话工作目录绑定的面板（Git 页签 +
-「文件」页签）。
-
-- **宿主半**（`lib/index.js`）：注册 `/git`、`/fs` 两条路由，全部走 HTTP JSON。
-- **浏览器半**（`lib/client.js`）：Git 页签 + 文件浏览页签 + 全屏面板 UI（预编译单文件 bundle）。
-
-界面文案中英双语（跟随 dsh locale 服务）。
+「文件」页签）。界面文案中英双语（跟随 dsh locale 服务）。
 
 ---
 
@@ -53,24 +48,13 @@
 该插件是 **bundle 插件**（`package.json` 声明 `dsh.bundle` + `cordis.patch.yml`，并声明 `dsh.client`），
 装好后宿主层与浏览器层都会被自动激活。
 
-### 方式一：dsh 用户级插件
 ```sh
 # 本地目录
-dsh plugin --profile web add -w --save-exact /path/to/dsh-git-graph
+dsh plugin --profile web add /path/to/dsh-git-graph
 
-# 或直接 npm 包（若已发布）
-dsh plugin --profile web add -w --save-exact @enoughpower/dsh-git-graph
+# 或已发布的 npm 包
+dsh plugin --profile web add @enoughpower/dsh-git-graph
 ```
-
-### 方式二：桌面壳一键 CLI
-```sh
-./add-plugin.sh --runtime add /path/to/dsh-git-graph
-./add-plugin.sh --runtime list
-```
-
-> `--runtime add` 会传 `-w`（profile 是 pnpm workspace 根）。`dsh` 用户级插件装在
-> `$DSH_HOME/profiles/<profile>/node_modules`，不会因应用重编译而丢失。
-> 纯 `dsh.client` 插件若未被自动激活，`plugins.mjs` 会在 profile 用户层 `cordis.patch.yml` 补一条激活记录。
 
 ---
 

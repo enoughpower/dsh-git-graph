@@ -6,13 +6,8 @@
 commit-graph / blame) together with a workspace **file browser & editor** (file tree / preview / edit /
 save) into a single installable dsh plugin. The host half registers two JSON APIs, `/git` and `/fs`;
 the browser half adds a **Git** button at the sidebar foot that opens a panel bound to the current
-session's working directory (Git tab + "Files" tab).
-
-- **Host half** (`lib/index.js`): registers the `/git` and `/fs` routes, both HTTP JSON.
-- **Browser half** (`lib/client.js`): Git tab + file-browser tab + full-screen panel UI (single
-  precompiled bundle).
-
-The UI copy is bilingual (Chinese / English), following the dsh locale service.
+session's working directory (Git tab + "Files" tab). The UI copy is bilingual (Chinese / English),
+following the dsh locale service.
 
 ---
 
@@ -59,25 +54,13 @@ The UI copy is bilingual (Chinese / English), following the dsh locale service.
 This is a **bundle plugin** (`package.json` declares `dsh.bundle` + `cordis.patch.yml` and
 `dsh.client`), so both the host layer and the browser layer are activated automatically once installed.
 
-### Option 1: dsh user-level plugin
 ```sh
 # local directory
-dsh plugin --profile web add -w --save-exact /path/to/dsh-git-graph
+dsh plugin --profile web add /path/to/dsh-git-graph
 
 # or a published npm package
-dsh plugin --profile web add -w --save-exact @enoughpower/dsh-git-graph
+dsh plugin --profile web add @enoughpower/dsh-git-graph
 ```
-
-### Option 2: desktop one-shot CLI
-```sh
-./add-plugin.sh --runtime add /path/to/dsh-git-graph
-./add-plugin.sh --runtime list
-```
-
-> `--runtime add` passes `-w` (the profile is a pnpm workspace root). dsh user-level plugins live in
-> `$DSH_HOME/profiles/<profile>/node_modules` and survive an app rebuild. A pure `dsh.client`
-> plugin that is not auto-activated will get an activation row appended to the profile's user-layer
-> `cordis.patch.yml` by `plugins.mjs`.
 
 ---
 
