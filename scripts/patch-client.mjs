@@ -36,5 +36,16 @@ const c2 = s.split(oldBin).length - 1;
 if (c2 !== 1) throw new Error(`expected binary wording to appear once, found ${c2}`);
 s = s.split(oldBin).join(newBin);
 
+// Patch 3: dsh 0.1.2-alpha.5 changed the client module system to a batched
+// boot manifest (`window.__DSH_BOOT__.batches`). Under that runtime the
+// CodeMirror MutationObserver deadlocks on scroll (infinite mutation loop).
+// Detect it and fall back to the built-in highlightHtml/pre/textarea renderer
+// (no MutationObserver); rc.2 keeps the full CodeMirror editor.
+const oldDshCm = `let dshCm = (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;`;
+const newDshCm = `let dshCm = (window.__DSH_BOOT__ && Array.isArray(window.__DSH_BOOT__.batches)) ? null : (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;`;
+const c3 = s.split(oldDshCm).length - 1;
+if (c3 !== 1) throw new Error(`expected dshCm definition to appear once, found ${c3}`);
+s = s.split(oldDshCm).join(newDshCm);
+
 writeFileSync(file, s);
-console.log("patched client bundle: openFile guard + wording");
+console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback");
