@@ -88,6 +88,23 @@ test("apply() exposes the two routes", async () => {
   assert.ok(routes.some((r) => r.path === "/fs"));
 });
 
+test("apply() skips gracefully when /git + /fs are already registered (desktop built-in conflict)", () => {
+  const exact = new Map();
+  const ws = {
+    register(route) {
+      if (exact.has(route.path)) throw new Error(`webserver: duplicate exact route "${route.path}"`);
+      exact.set(route.path, route);
+      return () => exact.delete(route.path);
+    },
+  };
+  // Simulate the desktop app's built-in git viewer already owning the routes.
+  ws.register({ kind: "exact", path: "/git", handler: () => {} });
+  ws.register({ kind: "exact", path: "/fs", handler: () => {} });
+  const ctx = { webServer: ws, effect(cb) { return cb(); } };
+  assert.doesNotThrow(() => apply(ctx)); // must not crash the layer
+  assert.equal(exact.size, 2); // routes stay owned by the built-in plugin
+});
+
 test("/git status reports the working tree split", async () => {
   await writeFile(join(repo, "a.txt"), "hello world\n");
   await writeFile(join(repo, "b.txt"), "new\n");
