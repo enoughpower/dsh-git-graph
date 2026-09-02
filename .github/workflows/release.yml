@@ -1,0 +1,41 @@
+name: Release
+
+# Publish to npm from GitHub Actions with provenance. Triggered by pushing a
+# version tag (e.g. v0.1.1) after bumping package.json:
+#   npm version patch && git push --tags
+#
+# Requires a GitHub secret named NPM_TOKEN (a granular access token with
+# "Publish" permission + "Bypass 2FA" checked) — npm publishes with it and
+# records the GitHub provenance link.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write # npm provenance attestation
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Run tests
+        run: npm test
+      - name: Tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p 'require("./package.json").version')"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::tag v$TAG does not match package.json version $PKG"
+            exit 1
+          fi
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

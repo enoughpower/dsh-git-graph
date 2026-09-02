@@ -1,7 +1,7 @@
 {
   "name": "dsh-git-graph",
   "version": "0.1.0",
-  "description": "DeepSeek Harness 集成 Git 与文件浏览插件：宿主半提供 /git JSON API（status/branch/diff/stage/commit/log/blame/cat 等）与 /fs 文件 API（tree/read/write），浏览器半提供 Git 页签与文件浏览页签 UI。Integrated Git & file-browser plugin for DeepSeek Harness: host /git JSON API + /fs file API, browser Git tab + file-browser UI.",
+  "description": "DeepSeek Harness 集成 Git 视图插件（当前为 Git 专用：文件浏览/编辑暂时停用）：宿主半提供 /git JSON API（status/branch/diff/stage/commit/log/blame/cat 等），浏览器半提供 Git 页签 UI。Git plugin for DeepSeek Harness (currently Git-only; the file browser is temporarily disabled): host /git JSON API + browser Git tab UI.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -21,7 +21,16 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test --test-timeout=60000 \"test/*.test.js\""
+    "test": "node --test --test-timeout=60000 test/*.test.js",
+    "prepublishOnly": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enoughpower/dsh-git-graph.git"
+  },
+  "homepage": "https://github.com/enoughpower/dsh-git-graph#readme",
+  "bugs": {
+    "url": "https://github.com/enoughpower/dsh-git-graph/issues"
   },
   "dsh": {
     "bundle": {
@@ -39,10 +48,9 @@
   "dshhub": {
     "schemaVersion": 1,
     "displayName": "dsh-git-graph",
-    "summary": "集成 Git 状态/提交图/分支/差异/提交/推送拉取与文件浏览编辑一体化的 DeepSeek Harness 插件，界面中英双语。Git + file-browser plugin for DeepSeek Harness: status / commit graph / branches / diff / commit / push / pull plus file tree, preview and edit.",
+    "summary": "集成 Git 状态/提交图/分支/差异/提交/推送拉取的 DeepSeek Harness 插件，界面中英双语（当前为 Git 专用）。Git plugin for DeepSeek Harness: status / commit graph / branches / diff / commit / push / pull, bilingual UI (Git-only build).",
     "categories": [
       "Git",
-      "文件浏览",
       "Web UI"
     ],
     "surfaces": [
@@ -51,8 +59,7 @@
     ],
     "capabilities": {
       "provides": [
-        "route:/git",
-        "route:/fs"
+        "route:/git"
       ]
     },
     "compatibility": {
