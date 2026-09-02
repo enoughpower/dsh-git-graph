@@ -19,7 +19,9 @@
     "README.md",
     "README.en.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "CHANGELOG.md",
+    "CHANGELOG.en.md"
   ],
   "scripts": {
     "test": "node --test --test-timeout=60000 test/*.test.js",
