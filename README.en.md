@@ -28,6 +28,12 @@ working directory (branch bar + commit graph + changed files + diff view). The U
 
 ---
 
+## Screenshot
+
+![Git panel: branch bar + commit history + changed files + diff view](./docs/screenshots/git-panel.png)
+
+---
+
 ## Compatibility
 
 | Item | Requirement |

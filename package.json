@@ -18,7 +18,8 @@
     "cordis.patch.yml",
     "README.md",
     "README.en.md",
-    "LICENSE"
+    "LICENSE",
+    "docs"
   ],
   "scripts": {
     "test": "node --test --test-timeout=60000 test/*.test.js",
