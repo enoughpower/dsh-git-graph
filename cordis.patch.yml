@@ -7,4 +7,4 @@
 #   bound to the current session's working directory.
 - insert:
     - id: git-graph
-      name: '@deepseek-ai/dsh-git-graph'
+      name: '@enoughpower/dsh-git-graph'

@@ -2,7 +2,7 @@
 
 > A DeepSeek Harness plugin that integrates **Git** and **file browse/edit**.
 
-`@deepseek-ai/dsh-git-graph` packages Git operations (status / branches / diff / commit / push-pull /
+`@enoughpower/dsh-git-graph` packages Git operations (status / branches / diff / commit / push-pull /
 commit-graph / blame) together with a workspace **file browser & editor** (file tree / preview / edit /
 save) into a single installable dsh plugin. The host half registers two JSON APIs, `/git` and `/fs`;
 the browser half adds a **Git** button at the sidebar foot that opens a panel bound to the current
@@ -65,7 +65,7 @@ This is a **bundle plugin** (`package.json` declares `dsh.bundle` + `cordis.patc
 dsh plugin --profile web add -w --save-exact /path/to/dsh-git-graph
 
 # or a published npm package
-dsh plugin --profile web add -w --save-exact @deepseek-ai/dsh-git-graph
+dsh plugin --profile web add -w --save-exact @enoughpower/dsh-git-graph
 ```
 
 ### Option 2: desktop one-shot CLI
@@ -187,7 +187,7 @@ node --test test/integration.test.js
 - `lib/client.js` is a precompiled artifact (esbuild; single-file imperative CodeMirror editor with
   the One Dark theme, no React duplication). This repo reuses the already-built bundle from the
   desktop build; both halves register under the same package name in the dsh client module system
-  (`window.__ModuleLoader__.load({ id: "@deepseek-ai/dsh-git-graph", factory })`).
+  (`window.__ModuleLoader__.load({ id: "@enoughpower/dsh-git-graph", factory })`).
 
 ---
 
