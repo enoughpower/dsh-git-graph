@@ -1,14 +1,10 @@
 # dsh-git-graph
 
-> DeepSeek Harness 集成 **Git** 与 **文件浏览/编辑** 一体化的插件。
+> DeepSeek Harness 集成 **Git** 视图的插件。
 
-`dsh-git-graph` 把 Git 操作（状态 / 分支 / 差异 / 提交 / 推送拉取 / 提交图 / 溯源）与工作区
-文件浏览编辑（文件树 / 预览 / 编辑 / 保存）打包成一个可直接安装的 dsh 插件。宿主半注册 `/git` 与 `/fs`
-两个 JSON API，浏览器半在侧栏底部加一个 **Git** 按钮，打开与当前会话工作目录绑定的面板（Git 页签 +
-「文件」页签）。界面文案中英双语（跟随 dsh locale 服务）。
-
-> **当前为 Git 专用版本**：「文件」浏览/编辑页签和对应的 `/fs` API 已**暂时停用**（原 CodeMirror 文件编辑器
-> 在 dsh 0.1.2-alpha.5 运行时上会触发 MutationObserver 死循环），Git 页签功能不受影响。
+`dsh-git-graph` 把 Git 操作（状态 / 分支 / 差异 / 提交 / 推送拉取 / 提交图 / 溯源）打包成一个可直接安装的
+dsh 插件。宿主半注册 `/git` JSON API，浏览器半在会话区域加一个 **Git** 页签，打开与当前会话工作目录
+绑定的面板（分支栏 + 提交图 + 变更文件 + 差异视图）。界面文案中英双语（跟随 dsh locale 服务）。
 
 ---
 
@@ -25,14 +21,7 @@
   `catFile`（读指定 ref 或工作区文件内容）。
 - **远程与标签**：`push` / `pull` / `fetch`（可 `prune`）、`remotes`、`tags`、`conflicts`。
 
-### 文件浏览/编辑（`/fs`）
-- `tree`：递归列出工作区文件树（自动跳过 `node_modules`、`.git`、`.dsh` 等目录，默认深度 10）。
-- `read`：读取文件，文本 / Base64 图片 / 二进制自动判别。
-- `write`：写入文件（自动创建父目录）。
-- **越界拦截**：`safePath` 保证所有读写都落在 `root` 之内，`../` 或绝对路径逃逸一律拒绝。
-
-> 大 diff 截断到 2 MiB；「文件」预览对**超大文件**（>1 MiB 文本 / >8 MiB 图片）以及**超长单行**内容会
-> 降级为「文件过大或二进制，无法预览」，避免把巨型文档喂给编辑器导致页面卡死。
+> 大 diff 截断到 2 MiB，避免超大差异冻结传输与前端渲染。
 
 ---
 
@@ -65,12 +54,10 @@ dsh plugin --profile web add dsh-git-graph
 ## 使用
 
 1. 装好插件并在会话内打开一个工作区（仓库目录）。
-2. 侧栏底部出现 **Git** 按钮，点击打开全屏面板。
-3. 面板内：
-   - **Git 页签**：顶部分支栏 + 提交图；选中一个提交看详情（变更文件 / 差异）；选中工作区文件可暂存 / 提交 / 丢弃。
-   - **文件页签**：左侧完整文件树；右侧文件内容。文本可编辑（⌘/Ctrl+S 保存，⌘/Ctrl+E 切换编辑/预览），
-     支持的常见格式自动高亮；`.md/.markdown` 预览自动渲染；图片等直接预览。
-4. 面板绑定「当前会话工作目录」；文件操作被限制在该目录之内。
+2. 会话区域出现 **Git** 页签（对话轨迹右侧），点击进入 Git 面板。
+3. 面板内：顶部分支栏 + 提交图；选中一个提交看详情（变更文件 / 差异）；选中工作区文件可暂存 /
+   提交 / 丢弃。
+4. 面板绑定「当前会话工作目录」。
 
 ---
 
@@ -120,14 +107,6 @@ dsh plugin --profile web add dsh-git-graph
 | `tags` | `{ path }` | 标签列表 |
 | `conflicts` | `{ path }` | 冲突文件列表 |
 
-### `/fs` 操作
-
-| op | 请求 | 说明 |
-|---|---|---|
-| `tree` | `{ root }` | `{ root, files: [{ name, path, type, size? }] }` |
-| `read` | `{ root, path }` | `{ type: "text"\|"image"\|"binary", text?/base64?/size? }` |
-| `write` | `{ root, path, content }` | `{ written }`；越界返回 `invalid-path` |
-
 ---
 
 ## 目录结构
@@ -137,11 +116,12 @@ dsh-git-graph/
 ├── package.json        # 插件清单：dsh.bundle + dsh.client + 发布元数据
 ├── cordis.patch.yml    # 宿主激活 row（id=git-graph）
 ├── lib/
-│   ├── index.js        # 宿主半：/git + /fs 路由 + 纯函数导出（可测）
-│   └── client.js       # 浏览器半：Git/文件页签 UI（预编译单文件 bundle）
+│   ├── index.js        # 宿主半：/git 路由 + 纯函数导出（可测）
+│   └── client.js       # 浏览器半：Git 页签 UI（预编译单文件 bundle）
 ├── test/
-│   ├── parse.test.js       # 纯函数单测（porcelain/分支头/safePath）
+│   ├── parse.test.js       # 纯函数单测（porcelain / 分支头解析）
 │   └── integration.test.js # 真实仓库 + HTTP 端到端烟测
+├── .github/workflows/  # CI + npm 发布（provenance）
 ├── README.md           # 中文文档
 ├── README.en.md        # English docs
 └── LICENSE             # MIT
@@ -160,17 +140,18 @@ node --test test/parse.test.js
 node --test test/integration.test.js
 ```
 
-- `test/integration.test.js` 会真实 `git init` 一个临时仓库、启动 `apply()`、用 HTTP 驱动 `/git`、`/fs`
+- `test/integration.test.js` 会真实 `git init` 一个临时仓库、启动 `apply()`、用 HTTP 驱动 `/git`
   做端到端冒烟，结束后清理临时目录。要求 `git` 在 `PATH` 中。
-- `lib/client.js` 是预编译产物（esbuild，单文件、无 React 冲突的命令式 CodeMirror 编辑器 + One Dark 主题）。
-  本仓库直接复用桌面版已编译 bundle，宿主/浏览器两半用同一包名在 dsh 客户端模块系统里注册
+- `lib/client.js` 是预编译产物（esbuild 单文件 bundle），本仓库直接复用桌面版已编译 bundle，
+  宿主/浏览器两半用同一包名在 dsh 客户端模块系统里注册
   （`window.__ModuleLoader__.load({ id: "dsh-git-graph", factory })`）。
+- CI（`.github/workflows/`）：push/PR 跑测试（Node 20/22）；打 `v*` 标签自动 `npm publish --provenance`
+  （需 `NPM_TOKEN` secret，标签版本号须与 package.json 一致）。
 
 ---
 
 ## 安全
 
-- `/fs` 所有 `path` 经 `safePath` 校验，`../` 与绝对路径逃逸一律拒绝（`invalid-path`）。
 - 每个 `/git` 操作都限定在请求的 `path` 目录内执行，不引入任意 shell（走 `execFile` 参数数组）。
 - 请求体上限 1MiB、`git` 输出缓冲 64MiB、diff 截断 2MiB，避免超大内容拖垮进程。
 

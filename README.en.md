@@ -1,17 +1,12 @@
 # dsh-git-graph
 
-> A DeepSeek Harness plugin that integrates **Git** and **file browse/edit**.
+> A DeepSeek Harness plugin that integrates a **Git** view.
 
 `dsh-git-graph` packages Git operations (status / branches / diff / commit / push-pull /
-commit-graph / blame) together with a workspace **file browser & editor** (file tree / preview / edit /
-save) into a single installable dsh plugin. The host half registers two JSON APIs, `/git` and `/fs`;
-the browser half adds a **Git** button at the sidebar foot that opens a panel bound to the current
-session's working directory (Git tab + "Files" tab). The UI copy is bilingual (Chinese / English),
-following the dsh locale service.
-
-> **Currently a Git-only build**: the "Files" browse/edit tab and the corresponding `/fs` API are
-> temporarily disabled (the CodeMirror file editor deadlocks in a MutationObserver loop on dsh
-> 0.1.2-alpha.5). The Git tab is unaffected.
+commit-graph / blame) into a single installable dsh plugin. The host half registers a `/git` JSON API;
+the browser half adds a **Git** tab to the session area, opening a panel bound to the current session's
+working directory (branch bar + commit graph + changed files + diff view). The UI copy is bilingual
+(Chinese / English), following the dsh locale service.
 
 ---
 
@@ -29,17 +24,7 @@ following the dsh locale service.
   `showFileDiff` (commit details & per-file diff), `catFile` (read a ref or a worktree file).
 - **Remote & tags**: `push` / `pull` / `fetch` (optional `prune`), `remotes`, `tags`, `conflicts`.
 
-### File browse/edit (`/fs`)
-- `tree`: recursively list the workspace file tree (skips `node_modules`, `.git`, `.dsh`, etc.,
-  default depth 10).
-- `read`: read a file, auto-classifying text / Base64 image / binary.
-- `write`: write a file (creates parent directories).
-- **Escape guard**: `safePath` keeps every read/write inside `root`; `../` or absolute-path escapes
-  are rejected.
-
-> Large diffs are truncated to 2 MiB; the file preview degrades very large files (text over
-> 1 MiB, images over 8 MiB) and files with pathologically long lines to a "too large or binary"
-> pane instead of handing the editor a monster document that freezes the page.
+> Large diffs are truncated to 2 MiB so huge changes cannot freeze transport or the frontend renderer.
 
 ---
 
@@ -72,14 +57,10 @@ dsh plugin --profile web add dsh-git-graph
 ## Usage
 
 1. Install the plugin and open a workspace (a repository directory) in a session.
-2. A **Git** button appears at the sidebar foot; click it to open the full-screen panel.
-3. Inside the panel:
-   - **Git tab**: branch bar + commit graph at the top; select a commit to inspect changes / diff;
-     select worktree files to stage / commit / discard.
-   - **Files tab**: full file tree on the left; file content on the right. Text is editable
-     (⌘/Ctrl+S to save, ⌘/Ctrl+E to toggle edit/preview) with syntax highlighting for common
-     formats; `.md/.markdown` preview renders automatically; images preview directly.
-4. The panel binds to the "current session's working directory"; file operations stay inside it.
+2. A **Git** tab appears in the session area (next to the trajectory view); click it to open the panel.
+3. Inside the panel: branch bar + commit graph at the top; select a commit to inspect changes / diff;
+   select worktree files to stage / commit / discard.
+4. The panel binds to the "current session's working directory".
 
 ---
 
@@ -129,14 +110,6 @@ Every request is `POST` with `content-type: application/json`. Uniform response:
 | `tags` | `{ path }` | tags |
 | `conflicts` | `{ path }` | conflicting files |
 
-### `/fs` operations
-
-| op | request | notes |
-|---|---|---|
-| `tree` | `{ root }` | `{ root, files: [{ name, path, type, size? }] }` |
-| `read` | `{ root, path }` | `{ type: "text"\|"image"\|"binary", text?/base64?/size? }` |
-| `write` | `{ root, path, content }` | `{ written }`; escape returns `invalid-path` |
-
 ---
 
 ## Repository layout
@@ -146,11 +119,12 @@ dsh-git-graph/
 ├── package.json        # plugin manifest: dsh.bundle + dsh.client + publish metadata
 ├── cordis.patch.yml    # host activation row (id=git-graph)
 ├── lib/
-│   ├── index.js        # host half: /git + /fs routes + exported pure helpers (testable)
-│   └── client.js       # browser half: Git/Files tab UI (precompiled single-file bundle)
+│   ├── index.js        # host half: /git route + exported pure helpers (testable)
+│   └── client.js       # browser half: Git tab UI (precompiled single-file bundle)
 ├── test/
-│   ├── parse.test.js       # pure-function unit tests (porcelain / branch header / safePath)
+│   ├── parse.test.js       # pure-function unit tests (porcelain / branch header)
 │   └── integration.test.js # real repo + HTTP end-to-end smoke test
+├── .github/workflows/  # CI + npm publish (provenance)
 ├── README.md           # Chinese docs
 ├── README.en.md        # English docs
 └── LICENSE             # MIT
@@ -170,19 +144,18 @@ node --test test/integration.test.js
 ```
 
 - `test/integration.test.js` really runs `git init` on a temp repo, boots `apply()`, and drives `/git`
-  and `/fs` over HTTP as an end-to-end smoke test, cleaning up the temp dir afterwards. It requires
-  `git` on `PATH`.
-- `lib/client.js` is a precompiled artifact (esbuild; single-file imperative CodeMirror editor with
-  the One Dark theme, no React duplication). This repo reuses the already-built bundle from the
-  desktop build; both halves register under the same package name in the dsh client module system
-  (`window.__ModuleLoader__.load({ id: "dsh-git-graph", factory })`).
+  over HTTP as an end-to-end smoke test, cleaning up the temp dir afterwards. It requires `git` on
+  `PATH`.
+- `lib/client.js` is a precompiled artifact (esbuild single-file bundle), reusing the already-built
+  bundle from the desktop build; both halves register under the same package name in the dsh client
+  module system (`window.__ModuleLoader__.load({ id: "dsh-git-graph", factory })`).
+- CI (`.github/workflows/`): runs tests on push/PR (Node 20/22); pushing a `v*` tag publishes to npm
+  with provenance (requires an `NPM_TOKEN` secret; the tag version must match package.json).
 
 ---
 
 ## Security
 
-- `/fs` validates every `path` with `safePath`; `../` and absolute-path escapes are rejected
-  (`invalid-path`).
 - Every `/git` operation runs scoped to the requested `path` directory, and never shells out through
   a string (it uses `execFile` with an argument array).
 - Request body capped at 1 MiB, `git` output buffer at 64 MiB, diffs truncated at 2 MiB, so huge
