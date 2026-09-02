@@ -172,3 +172,5 @@ node --test test/integration.test.js
 ## License
 
 [MIT](LICENSE)
+
+See [CHANGELOG.en.md](CHANGELOG.en.md) for release notes.

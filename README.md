@@ -166,3 +166,5 @@ node --test test/integration.test.js
 ## 许可证
 
 [MIT](LICENSE)
+
+更新说明见 [CHANGELOG.md](CHANGELOG.md)。
