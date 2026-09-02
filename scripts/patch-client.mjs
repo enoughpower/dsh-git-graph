@@ -58,13 +58,13 @@ s = s.slice(0, regStart) + '      // "文件" page tab disabled for now (Git onl
 
 // Patch 5: dsh 0.1.2-alpha.5's conversation root renders resizable pane
 // width handles (data-width-handle) that show as vertical bars over the
-// full-screen Git view. Hide them while the Git view is active (same approach
-// the shell uses for composer-overlay views).
+// full-screen Git view. The handles are SIBLINGS of the scroll body (inside
+// .body), so select via the general sibling combinator.
 const anchorRule = `"[data-slot=\\"conversation.session\\"]:has([data-git-view]) > div{flex:1 1 0% !important;min-height:0 !important}",`;
 const c5 = s.split(anchorRule).length - 1;
 if (c5 !== 1) throw new Error(`expected git-view css anchor to appear once, found ${c5}`);
 s = s.split(anchorRule).join(
-  anchorRule + `\n      "[data-slot=\\"conversation.session\\"]:has([data-git-view]) [data-width-handle]{display:none !important}",`
+  anchorRule + `\n      "[data-conversation-scroll]:has([data-git-view]) ~ [data-width-handle]{display:none !important}",`
 );
 
 writeFileSync(file, s);
