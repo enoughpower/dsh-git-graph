@@ -33,8 +33,9 @@ following the dsh locale service.
 - **Escape guard**: `safePath` keeps every read/write inside `root`; `../` or absolute-path escapes
   are rejected.
 
-> Large diffs / files are **truncation-protected** (default 2 MiB) so huge content cannot freeze
-> transport or the frontend renderer.
+> Large diffs are truncated to 2 MiB; the file preview degrades very large files (text over
+> 1 MiB, images over 8 MiB) and files with pathologically long lines to a "too large or binary"
+> pane instead of handing the editor a monster document that freezes the page.
 
 ---
 

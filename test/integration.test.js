@@ -168,6 +168,16 @@ test("/fs read returns text content", async () => {
   assert.equal(res.value.text, "new\n");
 });
 
+test("/fs read degrades a file over the preview cap to a binary marker", async () => {
+  const big = join(repo, "big.txt");
+  await writeFile(big, "x".repeat(1_100_000)); // > 1MiB text cap
+  const res = await post("/fs", { op: "read", root: repo, path: big });
+  assert.equal(res.ok, true);
+  assert.equal(res.value.type, "binary");
+  assert.equal(res.value.size, 1_100_000);
+  assert.equal("text" in res.value, false, "must not ship the full content");
+});
+
 test("/fs write persists content and can be read back", async () => {
   const target = join(repo, "sub", "deep", "z.txt");
   await mkdir(join(repo, "sub", "deep"), { recursive: true });
