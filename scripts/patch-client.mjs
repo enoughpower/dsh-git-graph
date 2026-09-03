@@ -67,5 +67,44 @@ s = s.split(anchorRule).join(
   anchorRule + `\n      "[data-conversation-scroll]:has([data-git-view]) ~ [data-width-handle]{display:none !important}",`
 );
 
+// Patch 6: mobile adaptation — register the Git tab on phones too (dsh-pocket
+// no longer hides it) and add responsive media queries: stack the panel,
+// compact the chrome, enlarge touch targets.
+const oldGate = `const pocketPhone = (typeof location !== "undefined") &&
+        new URLSearchParams(location.search).has("dsh-desktop-mode");
+      if (pocketPhone) return;`;
+const c6 = s.split(oldGate).length - 1;
+if (c6 !== 1) throw new Error(`expected mobile gate to appear once, found ${c6}`);
+s = s.split(oldGate).join(
+  `// Mobile (dsh-pocket) gets the Git tab too: the view is in-flow and
+      // responsive below (see the @media rules), so it adapts to narrow
+      // screens instead of being hidden.`
+);
+const mediaAnchor = `"[data-conversation-scroll]:has([data-git-view]) ~ [data-width-handle]{display:none !important}",`;
+const c7 = s.split(mediaAnchor).length - 1;
+if (c7 !== 1) throw new Error(`expected css anchor to appear once, found ${c7}`);
+s = s.split(mediaAnchor).join(mediaAnchor + `
+      // ── mobile (narrow screens / dsh-pocket drawer): stack the panel,
+      //    compact the chrome and enlarge touch targets ──
+      "@media (max-width: 768px){",
+      ".dshGitRoot{overflow-y:auto;gap:8px}",
+      ".dshGitTop{flex-wrap:wrap;height:auto;padding:8px 10px;gap:6px}",
+      ".dshGitTopTitle{font-size:15px}",
+      ".dshGitBranchMenu{position:fixed;width:calc(100% - 24px);left:12px;right:12px}",
+      ".dshGitBody{gap:6px}",
+      ".dshGitHistoryBand{height:auto !important;max-height:38vh;min-height:140px}",
+      ".dshGitResizeHandle{display:none}",
+      ".dshGitLowerSplit{flex-direction:column;overflow-y:auto}",
+      ".dshGitLowerSplit > .dshGitCol{width:100% !important;flex:0 0 auto !important;max-height:44vh;border-right:none;border-bottom:1px solid var(--dsw-alias-border-l2)}",
+      ".dshGitLowerSplit > .dshGitCol > .dshGitSection{min-height:0}",
+      ".dshGitDiff{overflow-x:auto}",
+      ".dshGitDiffLine{font-size:11px}",
+      ".dshGitLn{width:32px}",
+      ".dshGitIconBtn{width:36px;height:36px}",
+      ".dshGitInput{width:120px}",
+      ".dshGitSection{padding:8px 10px}",
+      ".dshGitCommitBar{flex-wrap:wrap}",
+      "}",`);
+
 writeFileSync(file, s);
-console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + hide width handles");
+console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive");

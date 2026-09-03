@@ -8,6 +8,10 @@ the browser half adds a **Git** tab to the session area, opening a panel bound t
 working directory (branch bar + commit graph + changed files + diff view). The UI copy is bilingual
 (Chinese / English), following the dsh locale service.
 
+> **Mobile**: the Git tab is also available on phones (via dsh-pocket); on narrow screens the panel
+> auto-stacks to a single column (history → changed files → diff), with a compact header and bigger
+> touch targets. Wide screens keep the three-column layout.
+
 ---
 
 ## Features
