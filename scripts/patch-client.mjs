@@ -135,8 +135,8 @@ for (const [o, n] of [
 // an invisible <select> (absolute inset:0, opacity:0, pointer-events:none)
 // overlays it, and the capsule click opens it via showPicker() (fallback
 // click()). The custom branch menu is disabled globally.
-const refA = "const boxRef = react.useRef(null);";
-if (s.split(refA).length !== 2) throw new Error("boxRef anchor not found");
+const refA = "const msgRef = react.useRef(null);";
+if (s.split(refA).length !== 2) throw new Error("msgRef anchor not found");
 s = s.split(refA).join(refA + `
       const branchSelectRef = react.useRef(null);`);
 const capOn = `onClick: () => setBranchMenu(branchMenu === "top" ? null : "top"), title: "分支切换"`;
