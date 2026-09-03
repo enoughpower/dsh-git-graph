@@ -140,7 +140,10 @@ const selectJsx = `jsx("select", { className: "dshGitBranchSelect", value: branc
 s = s.slice(0, spanEnd) + `\n          ` + selectJsx + s.slice(spanEnd);
 const selCssAnchor = `".dshGitTopTitle{font-size:15px}",`;
 if (s.split(selCssAnchor).length !== 2) throw new Error("css pad anchor not found");
-s = s.split(selCssAnchor).join(selCssAnchor + `\n      ".dshGitBranchSelect{display:none}" ,`);
+s = s.split(selCssAnchor).join(selCssAnchor + `
+      ".dshGitBranchSelect{display:inline-flex;align-items:center;gap:5px;max-width:220px;padding:2px 8px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}",
+      ".dshGitBranchBtn{display:none !important}",
+      ".dshGitBranchMenu{display:none !important}",`);
 const selMenuAnchor = `".dshGitBranchMenu{position:fixed;top:50%;transform:translateY(-50%);left:12px;right:12px;width:auto;max-height:64vh;overflow:auto}",`;
 if (s.split(selMenuAnchor).length !== 2) throw new Error("mobile menu anchor not found");
 s = s.split(selMenuAnchor).join(selMenuAnchor + `
