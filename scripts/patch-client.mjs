@@ -116,5 +116,20 @@ s = s.split(pocketAnchor).join(pocketAnchor + `
       // on mobile; hide them inside the Git view.
       "[data-git-view] [data-mobile-nav=\\"copy-file\\"]{display:none !important}",`);
 
+// Patch 8: dsh-pocket's mobile file guard intercepts ANY `<button>/<a>` whose
+// text looks like a file path (toast + swallows the click). Our file rows are
+// path-text buttons, so switch them to `<div role="button">` — the guard only
+// matches button/a. (Both rows get keyboard support.)
+const rowPk = `jsx("button", { type: "button", title: f.path + (f.original ? " \\u2190 " + f.original : ""), onClick: () => showCommitFile(selectedCommit, f.path), children: f.path })`;
+const rowPk2 = `jsx("button", { type: "button", title: f.path + (f.original ? " ← " + f.original : ""), onClick: () => showDiff(f.path, isStaged), children: f.path })`;
+for (const [o, n] of [
+  [rowPk, `jsx("div", { role: "button", tabIndex: 0, title: f.path + (f.original ? " \\u2190 " + f.original : ""), onClick: () => showCommitFile(selectedCommit, f.path), onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showCommitFile(selectedCommit, f.path); } }, children: f.path })`],
+  [rowPk2, `jsx("div", { role: "button", tabIndex: 0, title: f.path + (f.original ? " ← " + f.original : ""), onClick: () => showDiff(f.path, isStaged), onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showDiff(f.path, isStaged); } }, children: f.path })`],
+]) {
+  const c = s.split(o).length - 1;
+  if (c !== 1) throw new Error(`expected file-row button to appear once, found ${c}`);
+  s = s.split(o).join(n);
+}
+
 writeFileSync(file, s);
 console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive");
