@@ -106,5 +106,15 @@ s = s.split(mediaAnchor).join(mediaAnchor + `
       ".dshGitCommitBar{flex-wrap:wrap}",
       "}",`);
 
+// Patch 7: dsh-pocket injects "copy file content" buttons (data-mobile-nav=
+// "copy-file") next to path-like text on mobile; hide them inside the Git view.
+const pocketAnchor = `"[data-conversation-scroll]:has([data-git-view]) ~ [data-width-handle]{display:none !important}",`;
+const c8 = s.split(pocketAnchor).length - 1;
+if (c8 !== 1) throw new Error(`expected css anchor to appear once, found ${c8}`);
+s = s.split(pocketAnchor).join(pocketAnchor + `
+      // dsh-pocket injects "copy file content" buttons next to path-like text
+      // on mobile; hide them inside the Git view.
+      "[data-git-view] [data-mobile-nav=\\"copy-file\\"]{display:none !important}",`);
+
 writeFileSync(file, s);
 console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive");
