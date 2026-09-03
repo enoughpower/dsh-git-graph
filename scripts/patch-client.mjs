@@ -87,10 +87,10 @@ s = s.split(mediaAnchor).join(mediaAnchor + `
       // ── mobile (narrow screens / dsh-pocket drawer): stack the panel,
       //    compact the chrome and enlarge touch targets ──
       "@media (max-width: 768px){",
-      ".dshGitRoot{overflow-y:auto;gap:8px}",
+      ".dshGitRoot{overflow-y:auto;gap:8px;padding-bottom:env(safe-area-inset-bottom, 0px)}",
       ".dshGitTop{flex-wrap:wrap;height:auto;padding:8px 10px;gap:6px}",
       ".dshGitTopTitle{font-size:15px}",
-      ".dshGitBranchMenu{position:fixed;width:calc(100% - 24px);left:12px;right:12px}",
+      ".dshGitBranchMenu{position:fixed;top:50%;transform:translateY(-50%);left:12px;right:12px;width:auto;max-height:64vh;overflow:auto}",
       ".dshGitBody{gap:6px}",
       ".dshGitHistoryBand{height:178px !important}",
       ".dshGitResizeHandle{display:none}",
@@ -103,7 +103,7 @@ s = s.split(mediaAnchor).join(mediaAnchor + `
       ".dshGitIconBtn{width:36px;height:36px}",
       ".dshGitInput{width:120px}",
       ".dshGitSection{padding:8px 10px}",
-      ".dshGitCommitBar{flex-wrap:wrap}",
+      ".dshGitCommitBar{flex-wrap:wrap;padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px))}",
       "}",`);
 
 // Patch 7: dsh-pocket injects "copy file content" buttons (data-mobile-nav=
