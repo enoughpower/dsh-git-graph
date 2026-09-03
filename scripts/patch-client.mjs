@@ -131,20 +131,27 @@ for (const [o, n] of [
   s = s.split(o).join(n);
 }
 
-// Patch 9: unified NATIVE <select> branch picker — the original capsule stays
-// visible and an invisible <select> overlays it (absolute inset:0), so tapping
-// the capsule opens the system picker. The custom branch menu is disabled
-// globally.
+// Patch 9: unified NATIVE <select> branch picker. The capsule stays visible;
+// an invisible <select> (absolute inset:0, opacity:0, pointer-events:none)
+// overlays it, and the capsule click opens it via showPicker() (fallback
+// click()). The custom branch menu is disabled globally.
+const refA = "const boxRef = react.useRef(null);";
+if (s.split(refA).length !== 2) throw new Error("boxRef anchor not found");
+s = s.split(refA).join(refA + `
+      const branchSelectRef = react.useRef(null);`);
+const capOn = `onClick: () => setBranchMenu(branchMenu === "top" ? null : "top"), title: "分支切换"`;
+if (s.split(capOn).length !== 2) throw new Error("capsule onClick anchor not found");
+s = s.split(capOn).join(`onClick: () => { const el = branchSelectRef.current; if (el) { try { el.showPicker ? el.showPicker() : el.click(); } catch { try { el.click(); } catch {} } } }, title: "分支切换"`);
 const caretAnchor = `jsx("span", { className: "dshGitBranchCaret", children: "\\u25BE" }),`;
 if (s.split(caretAnchor).length !== 2) throw new Error("caret anchor not found");
-const selectJsx = `jsx("select", { className: "dshGitBranchSelect", value: branch || "", onChange: (e) => { const v = e.target.value; if (v) runMutation("switchBranch", { name: v }); }, children: branches.map((b) => jsx("option", { key: b.name, value: b.name, children: (b.remote ? "远程 · " : "") + b.name + (b.current ? "（当前）" : "") })) }),`;
+const selectJsx = `jsx("select", { ref: branchSelectRef, className: "dshGitBranchSelect", value: branch || "", onChange: (e) => { const v = e.target.value; if (v) runMutation("switchBranch", { name: v }); }, children: branches.map((b) => jsx("option", { key: b.name, value: b.name, children: (b.remote ? "远程 · " : "") + b.name + (b.current ? "（当前）" : "") })) }),`;
 s = s.split(caretAnchor).join(caretAnchor + `
                 ` + selectJsx);
 const selCssAnchor = `".dshGitTopTitle{font-size:15px}",`;
 if (s.split(selCssAnchor).length !== 2) throw new Error("css pad anchor not found");
 s = s.split(selCssAnchor).join(selCssAnchor + `
       ".dshGitBranch{position:relative}",
-      ".dshGitBranchSelect{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;background:transparent;color:transparent;cursor:pointer;appearance:none;-webkit-appearance:none;font-size:16px}",
+      ".dshGitBranchSelect{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;background:transparent;color:transparent;pointer-events:none;appearance:none;-webkit-appearance:none;font-size:16px}",
       ".dshGitBranchMenu{display:none !important}",`);
 
 writeFileSync(file, s);
