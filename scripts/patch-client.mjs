@@ -49,7 +49,7 @@ s = s.split(oldBin).join(newBin);
 // (no MutationObserver); rc.2 keeps the full CodeMirror editor.
 const oldDshCm = `let dshCm = (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;`;
 const newDshCm = `let dshCm = (window.__DSH_BOOT__ && Array.isArray(window.__DSH_BOOT__.batches)) ? null : (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;
-    console.info("[dsh-git-graph] bundle marker: 20260903-d (long branch names)");`;
+    console.info("[dsh-git-graph] bundle marker: 20260903-e (mobile commit bar)");`;
 const c3 = s.split(oldDshCm).length - 1;
 if (c3 !== 1) throw new Error(`expected dshCm definition to appear once, found ${c3}`);
 s = s.split(oldDshCm).join(newDshCm);
@@ -222,6 +222,21 @@ s = s.split(nameOld).join(`                jsx(primitives.IconBranchOutline16, {
 const tipOld = `title: "分支切换"`;
 if (s.split(tipOld).length !== 2) throw new Error("branch tooltip anchor not found");
 s = s.split(tipOld).join(`title: "分支切换：" + branch`);
+
+// Patch 13: mobile bottom commit bar. On a narrow screen the desktop rules
+// keep the status/output card at max-width:40%, so "Your branch is up to
+// date…" wraps into a cramped tall strip and the textarea/buttons fight for
+// one row. In the @media block (Patched by #6, which runs before this), stack
+// the bar: message textarea on its own line, then a wrapping button row, then
+// a FULL-WIDTH, shorter status card.
+const mbarOld = `.dshGitCommitBar{flex-wrap:wrap;padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px))}",`;
+if (s.split(mbarOld).length !== 2) throw new Error("mobile commit-bar anchor not found");
+s = s.split(mbarOld).join(mbarOld + `
+      ".dshGitCommitBar .dshGitMsgInput{flex:1 1 100%;width:100%;min-height:40px}",
+      ".dshGitCommitBar .dshGitIconBtn{flex:none}",
+      ".dshGitCommitBar .dshGitCommitMsg{flex:1 1 100%;max-width:none;max-height:72px}",
+      ".dshGitCommitBar .dshGitOut,.dshGitCommitBar .dshGitErr{max-height:60px;font-size:11px}",
+      ".dshGitCommitBar{gap:6px}",`);
 
 writeFileSync(file, s);
 console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive");
