@@ -151,7 +151,7 @@ const selCssAnchor = `".dshGitTopTitle{font-size:15px}",`;
 if (s.split(selCssAnchor).length !== 2) throw new Error("css pad anchor not found");
 s = s.split(selCssAnchor).join(selCssAnchor + `
       ".dshGitBranch{position:relative}",
-      ".dshGitBranchSelect{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;background:transparent;color:transparent;pointer-events:none;appearance:none;-webkit-appearance:none;font-size:16px}",
+      ".dshGitBranchSelect{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;border:none;background:transparent;color:transparent;pointer-events:none;appearance:none;-webkit-appearance:none;font-size:16px}",
       ".dshGitBranchMenu{display:none !important}",`);
 
 writeFileSync(file, s);
