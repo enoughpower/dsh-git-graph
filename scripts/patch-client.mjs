@@ -131,25 +131,21 @@ for (const [o, n] of [
   s = s.split(o).join(n);
 }
 
-// Patch 9: mobile branch switching uses a NATIVE <select> (system picker).
-// Insert it right after the branch-switch span, hide it on desktop, and on
-// mobile show it while disabling the custom branch menu.
-const spanEnd = s.indexOf(`}) : null,`, s.indexOf(`title: "分支切换"`)) + `}) : null,`.length;
-if (spanEnd < 0) throw new Error("branch span not found");
+// Patch 9: unified NATIVE <select> branch picker — the original capsule stays
+// visible and an invisible <select> overlays it (absolute inset:0), so tapping
+// the capsule opens the system picker. The custom branch menu is disabled
+// globally.
+const caretAnchor = `jsx("span", { className: "dshGitBranchCaret", children: "\\u25BE" }),`;
+if (s.split(caretAnchor).length !== 2) throw new Error("caret anchor not found");
 const selectJsx = `jsx("select", { className: "dshGitBranchSelect", value: branch || "", onChange: (e) => { const v = e.target.value; if (v) runMutation("switchBranch", { name: v }); }, children: branches.map((b) => jsx("option", { key: b.name, value: b.name, children: (b.remote ? "远程 · " : "") + b.name + (b.current ? "（当前）" : "") })) }),`;
-s = s.slice(0, spanEnd) + `\n          ` + selectJsx + s.slice(spanEnd);
+s = s.split(caretAnchor).join(caretAnchor + `
+                ` + selectJsx);
 const selCssAnchor = `".dshGitTopTitle{font-size:15px}",`;
 if (s.split(selCssAnchor).length !== 2) throw new Error("css pad anchor not found");
 s = s.split(selCssAnchor).join(selCssAnchor + `
-      ".dshGitBranchSelect{display:inline-flex;align-items:center;gap:5px;max-width:220px;padding:2px 8px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}",
-      ".dshGitBranchBtn{display:none !important}",
+      ".dshGitBranch{position:relative}",
+      ".dshGitBranchSelect{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;background:transparent;color:transparent;cursor:pointer;appearance:none;-webkit-appearance:none;font-size:16px}",
       ".dshGitBranchMenu{display:none !important}",`);
-const selMenuAnchor = `".dshGitBranchMenu{position:fixed;top:50%;transform:translateY(-50%);left:12px;right:12px;width:auto;max-height:64vh;overflow:auto}",`;
-if (s.split(selMenuAnchor).length !== 2) throw new Error("mobile menu anchor not found");
-s = s.split(selMenuAnchor).join(selMenuAnchor + `
-      ".dshGitBranchMenu{display:none !important}",
-      ".dshGitBranchBtn{pointer-events:none}",
-      ".dshGitBranchSelect{display:inline-flex;align-items:center;gap:5px;max-width:220px;padding:2px 8px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}",`);
 
 writeFileSync(file, s);
 console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive");
