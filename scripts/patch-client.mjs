@@ -2,6 +2,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 const file = new URL("../lib/client.js", import.meta.url).pathname;
 let s = readFileSync(file, "utf8");
 
+// Patch 0: plugin id rename — the raw artifact was built for the scoped
+// "@deepseek-ai/dsh-git-graph"; the published package is unscoped
+// "dsh-git-graph". Applied LAST (after all patches) so the other anchors can
+// keep referring to the raw text.
+const idOld = "@deepseek-ai/dsh-git-graph";
+
 // Patch 1: guard oversized / pathological-line text files so the editor's
 // syntax highlighter is never fed a monster document that freezes the page.
 const oldOpen = `const openFile = async (path) => {
@@ -42,7 +48,8 @@ s = s.split(oldBin).join(newBin);
 // Detect it and fall back to the built-in highlightHtml/pre/textarea renderer
 // (no MutationObserver); rc.2 keeps the full CodeMirror editor.
 const oldDshCm = `let dshCm = (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;`;
-const newDshCm = `let dshCm = (window.__DSH_BOOT__ && Array.isArray(window.__DSH_BOOT__.batches)) ? null : (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;`;
+const newDshCm = `let dshCm = (window.__DSH_BOOT__ && Array.isArray(window.__DSH_BOOT__.batches)) ? null : (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;
+    console.info("[dsh-git-graph] bundle marker: 20260903-d (long branch names)");`;
 const c3 = s.split(oldDshCm).length - 1;
 if (c3 !== 1) throw new Error(`expected dshCm definition to appear once, found ${c3}`);
 s = s.split(oldDshCm).join(newDshCm);
@@ -54,7 +61,7 @@ if (filesAnchor === -1) throw new Error("expected files tab registration to appe
 const regStart = s.lastIndexOf('ctx.slots.inject("conversation.view", () =>', filesAnchor);
 const filesIdx = s.indexOf("FilesView,", regStart);
 const regEnd = s.indexOf(");", filesIdx) + 2;
-s = s.slice(0, regStart) + '      // "文件" page tab disabled for now (Git only).' + s.slice(regEnd);
+s = s.slice(0, regStart) + '// 文件 page tab disabled for now (Git only): the CodeMirror file\n      // editor deadlocks on dsh 0.1.2-alpha.5. Restore later if needed.' + s.slice(regEnd);
 
 // Patch 5: dsh 0.1.2-alpha.5's conversation root renders resizable pane
 // width handles (data-width-handle) that show as vertical bars over the
@@ -132,9 +139,13 @@ for (const [o, n] of [
 }
 
 // Patch 9: unified NATIVE <select> branch picker. The capsule stays visible;
-// an invisible <select> (absolute inset:0, opacity:0, pointer-events:none)
-// overlays it, and the capsule click opens it via showPicker() (fallback
-// click()). The custom branch menu is disabled globally.
+// an invisible-but-CLICKABLE <select> overlays it (absolute inset:0,
+// opacity:0 — no pointer-events:none), so a real user click lands on the
+// select itself and the browser opens the native picker (desktop dropdown /
+// mobile wheel). The span's onClick is kept as a showPicker() fallback for
+// areas the select does not cover, and the select's own onClick stops
+// propagation so the two never double-fire. The custom branch menu is
+// disabled globally.
 const refA = "const msgRef = react.useRef(null);";
 if (s.split(refA).length !== 2) throw new Error("msgRef anchor not found");
 s = s.split(refA).join(refA + `
@@ -144,15 +155,73 @@ if (s.split(capOn).length !== 2) throw new Error("capsule onClick anchor not fou
 s = s.split(capOn).join(`onClick: () => { const el = branchSelectRef.current; if (el) { try { el.showPicker ? el.showPicker() : el.click(); } catch { try { el.click(); } catch {} } } }, title: "分支切换"`);
 const caretAnchor = `jsx("span", { className: "dshGitBranchCaret", children: "\\u25BE" }),`;
 if (s.split(caretAnchor).length !== 2) throw new Error("caret anchor not found");
-const selectJsx = `jsx("select", { ref: branchSelectRef, className: "dshGitBranchSelect", value: branch || "", onChange: (e) => { const v = e.target.value; if (v) runMutation("switchBranch", { name: v }); }, children: branches.map((b) => jsx("option", { key: b.name, value: b.name, children: (b.remote ? "远程 · " : "") + b.name + (b.current ? "（当前）" : "") })) }),`;
+const selectJsx = `jsx("select", { ref: branchSelectRef, className: "dshGitBranchSelect", value: branch || "", onClick: (e) => { e.stopPropagation(); }, onChange: (e) => { const v = e.target.value; if (v) runMutation("switchBranch", { name: v }); }, children: branches.map((b) => jsx("option", { key: b.name, value: b.name, children: (b.remote ? "远程 · " : "") + b.name + (b.current ? "（当前）" : "") })) }),`;
 s = s.split(caretAnchor).join(caretAnchor + `
                 ` + selectJsx);
-const selCssAnchor = `".dshGitTopTitle{font-size:15px}",`;
-if (s.split(selCssAnchor).length !== 2) throw new Error("css pad anchor not found");
+// GLOBAL css (NOT inside @media): anchor on the top-level caret rule so the
+// clickable overlay select applies on desktop too (mobile-only caused the
+// visible "master (当前)" box on the web).
+const selCssAnchor = `".dshGitBranchCaret{font-size:10px;opacity:.7}",`;
+if (s.split(selCssAnchor).length !== 2) throw new Error("css global anchor not found");
 s = s.split(selCssAnchor).join(selCssAnchor + `
       ".dshGitBranch{position:relative}",
-      ".dshGitBranchSelect{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;border:none;background:transparent;color:transparent;pointer-events:none;appearance:none;-webkit-appearance:none;font-size:16px}",
+      ".dshGitBranchSelect{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;background:transparent;color:transparent;appearance:none;-webkit-appearance:none;font-size:16px}",
       ".dshGitBranchMenu{display:none !important}",`);
+
+// Patch 10: always refresh the injected <style> tag. The old guard
+// (create-only-if-absent) left STALE CSS after an HMR bundle reload, which is
+// why layout fixes sometimes did not appear.
+const oldCssInject = `    const cssTagId = "@deepseek-ai/dsh-git-graph/styles.css";
+    if (typeof document !== "undefined" && document.querySelector('style[data-plugin-css="' + cssTagId + '"]') === null) {
+      const tag = document.createElement("style");
+      tag.dataset.plugin = "@deepseek-ai/dsh-git-graph";
+      tag.dataset.pluginCss = cssTagId;
+      tag.textContent = css;
+      document.head.appendChild(tag);
+    }`;
+const newCssInject = `    const cssTagId = "@deepseek-ai/dsh-git-graph/styles.css";
+    if (typeof document !== "undefined") {
+      let tag = document.querySelector('style[data-plugin-css="' + cssTagId + '"]');
+      if (tag === null) {
+        tag = document.createElement("style");
+        tag.dataset.plugin = "@deepseek-ai/dsh-git-graph";
+        tag.dataset.pluginCss = cssTagId;
+        document.head.appendChild(tag);
+      }
+      tag.textContent = css;
+    }`;
+const c10 = s.split(oldCssInject).length - 1;
+if (c10 !== 1) throw new Error(`expected css injection block to appear once, found ${c10}`);
+s = s.split(oldCssInject).join(newCssInject);
+
+// Patch 11 (LAST): plugin id rename so the bundle self-identifies as the
+// unscoped package (registered under /plugins/dsh-git-graph).
+const c11 = s.split(idOld).length - 1;
+if (c11 !== 3) throw new Error(`expected plugin id to appear 3 times, found ${c11}`);
+s = s.split(idOld).join("dsh-git-graph");
+
+// Patch 12: long branch names. The capsule had max-width:220px, which clipped
+// names like "feature/dsh-web-protocol-adaptation"; and since the branch text
+// is a raw flex item, text-overflow:ellipsis cannot apply — it just cuts.
+// Wrap the name in its own ellipsizing span, raise the cap, and show the full
+// name in a hover tooltip.
+const capOld = `max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",`;
+if (s.split(capOld).length !== 2) throw new Error("branch capsule max-width anchor not found");
+// No fixed cap: as a flex item it can take all the free space of the top bar
+// (shrinkable, min-width:0), so long names show in full when the bar has room
+// and ellipsize only when something else genuinely needs the width.
+s = s.split(capOld).join(`flex:0 1 auto;min-width:0;overflow:hidden;white-space:nowrap}",
+      ".dshGitBranchName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",`);
+const nameOld = `                jsx(primitives.IconBranchOutline16, { size: 14 }),
+                branch,
+                jsx("span", { className: "dshGitBranchCaret", children: "\\u25BE" }),`;
+if (s.split(nameOld).length !== 2) throw new Error("branch name jsx anchor not found");
+s = s.split(nameOld).join(`                jsx(primitives.IconBranchOutline16, { size: 14 }),
+                jsx("span", { className: "dshGitBranchName", children: branch }),
+                jsx("span", { className: "dshGitBranchCaret", children: "\\u25BE" }),`);
+const tipOld = `title: "分支切换"`;
+if (s.split(tipOld).length !== 2) throw new Error("branch tooltip anchor not found");
+s = s.split(tipOld).join(`title: "分支切换：" + branch`);
 
 writeFileSync(file, s);
 console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive");
