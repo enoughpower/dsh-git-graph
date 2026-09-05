@@ -1,5 +1,12 @@
 # 更新说明（CHANGELOG）
 
+## 0.1.3（2026-09-03）
+
+- **移动端适配（Git 视图）**：窄屏下面板自动单列堆叠、历史区固定约 5 行（178px）、底部提交栏由「挤压状态卡」改为堆叠布局、预留底部安全区（修复根节点与提交栏安全区内边距被重复叠加的问题）。
+- **原生分支选择器**：统一桌面与移动端——点击分支胶囊调用 `showPicker()` 打开原生 `<select>`（隐藏的原生 select 覆盖层，而非叠加自绘胶囊）；修复 `branchSelectRef` 声明在 `DiffView` 导致的白屏；长分支名完整显示（不再截断）。
+- **交互与兼容**：`patch-client.mjs` 作为权威构建产物；文件行显示指针光标（而非文本 I-beam）；Git 视图内隐藏 dsh-pocket 的「复制文件」按钮，并阻止 dsh-pocket 文件守卫截获 Git 文件行的点击。
+- **发布说明**：`package.json` 版本提升到 `0.1.3`，tag `v0.1.3` 已推送，npm 已发布 `dsh-git-graph@0.1.3`（含 provenance）；**GitHub 未为该 tag 创建 Release**（此前仅 `v0.1.1`、`v0.1.2` 有 Release）。
+
 ## 0.1.2（2026-09-03）
 
 - **修复**：dsh `0.1.2-alpha.5` 会话区新增的「可调宽面板」手柄（`data-width-handle`）在全屏 Git 页签上显示为
@@ -36,4 +43,4 @@
 
 - 曾以 scoped 名 **`@enoughpower/dsh-git-graph`** 发布过 `0.1.0`/`0.1.1`；由于 2FA 绕过 token 无法执行
   撤包（npm 限制），该包仍在 registry 上，**请使用 unscoped 的 `dsh-git-graph`**。
-- 发布流程：`npm version patch && git push --tags` → GitHub Actions 自动测试并发布（带 provenance）。
+- 发布流程：`npm version patch && git push --tags` → GitHub Actions 自动测试、发布到 npm（带 provenance）并创建对应的 GitHub Release。
