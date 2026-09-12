@@ -49,7 +49,7 @@ s = s.split(oldBin).join(newBin);
 // (no MutationObserver); rc.2 keeps the full CodeMirror editor.
 const oldDshCm = `let dshCm = (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;`;
 const newDshCm = `let dshCm = (window.__DSH_BOOT__ && Array.isArray(window.__DSH_BOOT__.batches)) ? null : (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;
-    console.info("[dsh-git-graph] bundle marker: 20260912-a (tag switch)");`;
+    console.info("[dsh-git-graph] bundle marker: 20260912-b (self-hosting guard)");`;
 const c3 = s.split(oldDshCm).length - 1;
 if (c3 !== 1) throw new Error(`expected dshCm definition to appear once, found ${c3}`);
 s = s.split(oldDshCm).join(newDshCm);
@@ -302,5 +302,36 @@ const refPickerNew = `          branch || currentTag
 if (s.split(refPickerOld).length !== 2) throw new Error("branch capsule anchor not found");
 s = s.split(refPickerOld).join(refPickerNew);
 
+
+// Patch 15: self-hosting guard. The panel's working directory can be the very
+// repository that SHIPS this plugin (the profile installs it as a symlink to the
+// dev checkout), so switching a tag there rewrites the plugin's own files and
+// the running frontend reverts to that release's bundle — which is how the old
+// branch menu reappeared. The host now reports `self` on `status`; when it is
+// true a TAG pick asks for confirmation first. Branch picks stay ungated so the
+// way back onto a branch is still one click.
+const selfStateAnchor = `      const [currentTag, setCurrentTag] = react.useState("");`;
+if (s.split(selfStateAnchor).length !== 2) throw new Error("currentTag state anchor not found");
+s = s.split(selfStateAnchor).join(selfStateAnchor + `
+      const [selfRepo, setSelfRepo] = react.useState(false);`);
+
+const selfRefreshAnchor = `        if (tg.ok) { setTags(tg.value.tags); setCurrentTag(tg.value.current || ""); }`;
+if (s.split(selfRefreshAnchor).length !== 2) throw new Error("tags refresh anchor not found");
+s = s.split(selfRefreshAnchor).join(selfRefreshAnchor + `
+        if (st.ok) setSelfRepo(st.value.self === true);`);
+
+const tagPickOld = `onChange: (e) => { const v = e.target.value; if (v.indexOf("tag:") === 0) runMutation("switchTag", { name: v.slice(4) }); else if (v.indexOf("branch:") === 0) runMutation("switchBranch", { name: v.slice(7) }); }`;
+const tagPickNew = `onChange: (e) => { const v = e.target.value; if (v.indexOf("tag:") === 0) { const name = v.slice(4); const go = () => runMutation("switchTag", { name }); if (selfRepo) setModal({ title: "切换到标签 " + name + "？", body: "当前仓库就是 dsh-git-graph 插件自身的源码目录。检出这个标签会把工作区变成该版本的代码，正在运行的插件前端也会随之切换（可能失去较新的功能）。确定继续？", action: go, onCancel: () => { const el = branchSelectRef.current; if (el) el.value = currentTag ? "tag:" + currentTag : "branch:" + branch; } }); else go(); } else if (v.indexOf("branch:") === 0) runMutation("switchBranch", { name: v.slice(7) }); }`;
+if (s.split(tagPickOld).length !== 2) throw new Error("tag pick onChange anchor not found");
+s = s.split(tagPickOld).join(tagPickNew);
+
+const modalCloseOld = `modal ? jsx(Modal, { title: modal.title, onClose: () => setModal(null), children: jsxs(Fragment, { children: [`;
+if (s.split(modalCloseOld).length !== 2) throw new Error("modal onClose anchor not found");
+s = s.split(modalCloseOld).join(`modal ? jsx(Modal, { title: modal.title, onClose: () => { if (modal.onCancel) modal.onCancel(); setModal(null); }, children: jsxs(Fragment, { children: [`);
+
+const modalCancelOld = `jsx(primitives.Button, { variant: "outline", size: "sm", onClick: () => setModal(null), children: "取消" }),`;
+if (s.split(modalCancelOld).length !== 2) throw new Error("modal cancel anchor not found");
+s = s.split(modalCancelOld).join(`jsx(primitives.Button, { variant: "outline", size: "sm", onClick: () => { if (modal.onCancel) modal.onCancel(); setModal(null); }, children: "取消" }),`);
+
 writeFileSync(file, s);
-console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive + tag switch");
+console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive + tag switch + self-hosting guard");

@@ -14,6 +14,7 @@ import { promisify } from "node:util";
 import { mkdtemp, rm, writeFile, mkdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { apply } from "../lib/index.js";
 
 const execFileAsync = promisify(execFile);
@@ -200,3 +201,15 @@ test("/git switchTag surfaces a clean error for an unknown tag", async () => {
   assert.equal(res.ok, false);
   assert.equal(res.error.code, "git-error");
 });
+
+test("/git status flags the plugin's own source tree (self-hosting guard)", async () => {
+  const other = await post("/git", { op: "status", path: repo });
+  assert.equal(other.ok, true);
+  assert.equal(other.value.self, false, "a temp repo is not the plugin tree");
+
+  const selfRoot = fileURLToPath(new URL("..", import.meta.url));
+  const self = await post("/git", { op: "status", path: selfRoot });
+  assert.equal(self.ok, true, JSON.stringify(self));
+  assert.equal(self.value.self, true, "the plugin's own checkout must be flagged");
+});
+

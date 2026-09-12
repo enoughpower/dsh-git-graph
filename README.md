@@ -19,7 +19,8 @@ dsh 插件。宿主半注册 `/git` JSON API，浏览器半在会话区域加一
   删除（`deleteBranch`）、重命名（`renameBranch`）、合并（`merge`，可选 `--no-ff`）。
 - **分支 / 标签统一下拉**：顶栏一个下拉框用分组（`<optgroup>`）同时列出「本地分支 / 远程分支 / 标签」，
   选中分支走 `switchBranch`、选中标签走 `switchTag`（检出为 detached HEAD）。`tags` 会标注当前检出的标签，
-  胶囊据此回显当前 ref（在标签上时显示标签名，而不是 `HEAD (no branch)`）。
+  胶囊据此回显当前 ref（在标签上时显示标签名，而不是 `HEAD (no branch)`）。若面板指向的是**插件自身的仓库**，
+  选标签会先弹确认（避免把正在运行的插件前端换成旧版本）；选分支不拦截，方便一键切回。
 - **差异与提交**：`diff`（工作区 / 已暂存）、`stage` / `unstage` / `discard` / `remove`、
   `commit`（提交选中文件或全部）、`amend`。
 - **历史与溯源**：`log`（oneline 列表）、`graphLog`（带父提交的提交图）、`fileLog`（单文件历史）、
@@ -88,7 +89,7 @@ dsh plugin --profile web add dsh-git-graph
 
 | op | 请求 | 说明 |
 |---|---|---|
-| `status` | `{ path }` | 分支 + staged / unstaged / untracked 文件 |
+| `status` | `{ path }` | 分支 + staged / unstaged / untracked 文件；`self` 标记该目录是否为插件自身源码树 |
 | `staged` | `{ path }` | 仅已暂存（index vs HEAD）文件 |
 | `branches` | `{ path }` | 本地/远程分支（当前、track 信息、ahead/behind） |
 | `switchBranch` | `{ path, name }` | 切换分支（远程名自动退化为本地短名） |

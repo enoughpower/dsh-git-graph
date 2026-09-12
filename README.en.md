@@ -24,7 +24,9 @@ working directory (branch bar + commit graph + changed files + diff view). The U
 - **Unified branch/tag picker**: one top-bar dropdown groups local branches, remote branches and tags
   (`<optgroup>`); picking a branch runs `switchBranch`, picking a tag runs `switchTag` (a detached-HEAD
   checkout). `tags` annotates the checked-out tag, and the capsule reflects the current ref (the tag name
-  instead of `HEAD (no branch)` while on a tag).
+  instead of `HEAD (no branch)` while on a tag). When the panel points at the **plugin's own repository**,
+  picking a tag asks for confirmation first (so the running frontend is not silently swapped for an older
+  release); branch picks are not gated, so getting back onto a branch stays one click.
 - **Diff & commit**: `diff` (worktree or staged), `stage` / `unstage` / `discard` / `remove`,
   `commit` (selected files or all), `amend`.
 - **History & blame**: `log` (oneline list), `graphLog` (commit graph with parents), `fileLog`
@@ -93,7 +95,7 @@ Every request is `POST` with `content-type: application/json`. Uniform response:
 
 | op | request | notes |
 |---|---|---|
-| `status` | `{ path }` | branch + staged / unstaged / untracked files |
+| `status` | `{ path }` | branch + staged / unstaged / untracked files; `self` flags the plugin's own source tree |
 | `staged` | `{ path }` | staged-only (index vs HEAD) files |
 | `branches` | `{ path }` | local/remote branches (current, track, ahead/behind) |
 | `switchBranch` | `{ path, name }` | switch branch (remote names fall back to the local short name) |

@@ -8,6 +8,10 @@
   to the new `switchTag` (`git switch --detach refs/tags/<name>`, a detached-HEAD checkout).
 - The `tags` op now also returns `current` (the checked-out tag, non-empty only on a detached HEAD), so the
   capsule reflects the current ref — the tag name instead of `HEAD (no branch)` while on a tag.
+- **Self-hosting guard**: `status` now reports `self` (whether the target directory is the plugin's own source
+  tree). When the panel points at the plugin's repository, picking a tag asks for confirmation first (it
+  replaces the running frontend code) — checking out `v0.1.1` used to downgrade the live plugin, which showed
+  up as the old in-page branch menu. Branch picks are not gated, so getting back onto a branch stays one click.
 
 ## 0.1.3 (2026-09-03)
 
