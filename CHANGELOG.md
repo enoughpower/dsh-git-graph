@@ -2,9 +2,11 @@
 
 ## 0.1.4（未发布）
 
-- **新增：切换标签（tag）**：Git 面板顶栏新增 tag 胶囊，与分支胶囊同一套交互（隐藏的原生 `<select>` 覆盖层，
-  点击弹出原生选择器），列出仓库标签并切换到选中的标签（`switchTag`，检出为 detached HEAD）；切回分支仍用分支胶囊。
-- `tags` op 现在额外返回 `current`（当前检出的标签，仅在 detached HEAD 时非空），供 tag 胶囊回显当前状态。
+- **新增：分支 / 标签统一下拉**：顶栏的分支胶囊改为一个下拉框，用 `<optgroup>` 分组列出「本地分支 / 远程分支 /
+  标签」；选项值带 `branch:` / `tag:` 前缀（分支与标签可能同名），据此分别调用 `switchBranch` 或新增的
+  `switchTag`（`git switch --detach refs/tags/<name>`，检出为 detached HEAD）。
+- `tags` op 现在额外返回 `current`（当前检出的标签，仅在 detached HEAD 时非空），胶囊据此回显当前 ref
+  （在标签上时显示标签名，而不是 `HEAD (no branch)`）。
 
 ## 0.1.3（2026-09-03）
 

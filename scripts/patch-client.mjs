@@ -239,22 +239,18 @@ s = s.split(mbarOld).join(mbarOld + `
       ".dshGitCommitBar{gap:6px}",`);
 
 
-// Patch 14: tag switching. The panel could LIST tags (op `tags`) but never
-// check one out. Mirror the branch picker: a second capsule whose invisible
-// native <select> lists the repository's tags and calls the new `switchTag`
-// op (`git switch --detach refs/tags/<name>`). The host `tags` op now also
-// reports the tag HEAD sits on exactly, so the capsule can show which tag is
-// currently checked out after a detached checkout.
+// Patch 14: ONE dropdown for branches AND tags. The panel could LIST tags (op
+// `tags`) but never check one out, and the branch capsule only knew branches.
+// The single capsule's native <select> now groups 本地分支 / 远程分支 / 标签;
+// option values carry a `branch:` / `tag:` prefix because a branch and a tag
+// may share a name, and the prefix picks `switchBranch` or `switchTag`. The
+// host `tags` op also reports the tag HEAD sits on exactly, so the capsule
+// shows the checked-out ref (branch or tag) instead of "HEAD (no branch)".
 const tagStateAnchor = `const [branches, setBranches] = react.useState([]);`;
 if (s.split(tagStateAnchor).length !== 2) throw new Error("branches state anchor not found");
 s = s.split(tagStateAnchor).join(tagStateAnchor + `
       const [tags, setTags] = react.useState([]);
       const [currentTag, setCurrentTag] = react.useState("");`);
-
-const tagRefAnchor = `const branchSelectRef = react.useRef(null);`;
-if (s.split(tagRefAnchor).length !== 2) throw new Error("branchSelectRef anchor not found");
-s = s.split(tagRefAnchor).join(tagRefAnchor + `
-      const tagSelectRef = react.useRef(null);`);
 
 const tagRefreshOld = `        const [st, br, gr, cf] = await Promise.all([
           gitCall("status", { path: p }),
@@ -282,17 +278,29 @@ if (s.split(tagCssAnchor).length !== 2) throw new Error("tag chip css anchor not
 s = s.split(tagCssAnchor).join(tagCssAnchor + `
       ".dshGitTagActive{border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-state-business-primary)}",`);
 
-const tagCapsule = `          tags.length > 0 || currentTag
-            ? jsx("span", { className: "dshGitBranch dshGitBranchBtn" + (currentTag ? " dshGitTagActive" : ""), onClick: () => { const el = tagSelectRef.current; if (el) { try { el.showPicker ? el.showPicker() : el.click(); } catch { try { el.click(); } catch {} } } }, title: currentTag ? "切换 tag（当前：" + currentTag + "）" : "切换 tag", children: [
-                jsx("span", { className: "dshGitBranchName", children: currentTag || "tag" }),
+const refPickerOld = `          branch
+            ? jsx("span", { className: "dshGitBranch dshGitBranchBtn" + (branchMenu === "top" ? " dshGitBranchActive" : ""), onClick: () => { const el = branchSelectRef.current; if (el) { try { el.showPicker ? el.showPicker() : el.click(); } catch { try { el.click(); } catch {} } } }, title: "分支切换：" + branch, children: [
+                jsx(primitives.IconBranchOutline16, { size: 14 }),
+                jsx("span", { className: "dshGitBranchName", children: branch }),
                 jsx("span", { className: "dshGitBranchCaret", children: "\\u25BE" }),
-                jsx("select", { ref: tagSelectRef, className: "dshGitBranchSelect", value: currentTag || "", onClick: (e) => { e.stopPropagation(); }, onChange: (e) => { const v = e.target.value; if (v && v !== currentTag) runMutation("switchTag", { name: v }); }, children: [jsx("option", { value: "", children: "切换 tag…" }), ...tags.map((t) => jsx("option", { key: t.name, value: t.name, children: t.name + (t.name === currentTag ? "（当前）" : "") }))] }),
+                jsx("select", { ref: branchSelectRef, className: "dshGitBranchSelect", value: branch || "", onClick: (e) => { e.stopPropagation(); }, onChange: (e) => { const v = e.target.value; if (v) runMutation("switchBranch", { name: v }); }, children: branches.map((b) => jsx("option", { key: b.name, value: b.name, children: (b.remote ? "远程 · " : "") + b.name + (b.current ? "（当前）" : "") })) }),
               ] })
-            : null,
-`;
-const tagUpstreamAnchor = `          upstream ? jsx("span", { className: "dshGitUpstream", children: upstream }) : null,`;
-if (s.split(tagUpstreamAnchor).length !== 2) throw new Error("upstream anchor not found");
-s = s.split(tagUpstreamAnchor).join(tagCapsule + tagUpstreamAnchor);
+            : null,`;
+const refPickerNew = `          branch || currentTag
+            ? jsx("span", { className: "dshGitBranch dshGitBranchBtn" + (branchMenu === "top" ? " dshGitBranchActive" : "") + (currentTag ? " dshGitTagActive" : ""), onClick: () => { const el = branchSelectRef.current; if (el) { try { el.showPicker ? el.showPicker() : el.click(); } catch { try { el.click(); } catch {} } } }, title: currentTag ? "切换分支/标签（当前标签：" + currentTag + "）" : "切换分支/标签：" + branch, children: [
+                jsx(primitives.IconBranchOutline16, { size: 14 }),
+                jsx("span", { className: "dshGitBranchName", children: currentTag || branch }),
+                jsx("span", { className: "dshGitBranchCaret", children: "\\u25BE" }),
+                jsx("select", { ref: branchSelectRef, className: "dshGitBranchSelect", value: currentTag ? "tag:" + currentTag : "branch:" + branch, onClick: (e) => { e.stopPropagation(); }, onChange: (e) => { const v = e.target.value; if (v.indexOf("tag:") === 0) runMutation("switchTag", { name: v.slice(4) }); else if (v.indexOf("branch:") === 0) runMutation("switchBranch", { name: v.slice(7) }); }, children: [
+                  branch && !currentTag && !branches.some((b) => b.name === branch) ? jsx("option", { key: "cur", value: "branch:" + branch, children: branch }) : null,
+                  branches.filter((b) => !b.remote).length > 0 ? jsx("optgroup", { key: "local", label: "本地分支", children: branches.filter((b) => !b.remote).map((b) => jsx("option", { key: "b:" + b.name, value: "branch:" + b.name, children: b.name + (b.name === branch && !currentTag ? "（当前）" : "") })) }) : null,
+                  branches.filter((b) => b.remote).length > 0 ? jsx("optgroup", { key: "remote", label: "远程分支", children: branches.filter((b) => b.remote).map((b) => jsx("option", { key: "b:" + b.name, value: "branch:" + b.name, children: b.name + (b.name === branch && !currentTag ? "（当前）" : "") })) }) : null,
+                  tags.length > 0 ? jsx("optgroup", { key: "tags", label: "标签", children: tags.map((t) => jsx("option", { key: "t:" + t.name, value: "tag:" + t.name, children: t.name + (t.name === currentTag ? "（当前）" : "") })) }) : null,
+                ] }),
+              ] })
+            : null,`;
+if (s.split(refPickerOld).length !== 2) throw new Error("branch capsule anchor not found");
+s = s.split(refPickerOld).join(refPickerNew);
 
 writeFileSync(file, s);
 console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive + tag switch");

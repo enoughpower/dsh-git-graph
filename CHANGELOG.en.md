@@ -2,12 +2,12 @@
 
 ## 0.1.4 (unreleased)
 
-- **New: tag switching**: the Git panel top bar gains a tag capsule using the same interaction as the branch
-  capsule (an invisible native `<select>` overlay that opens the platform picker). It lists the repository's
-  tags and checks out the selected one (`switchTag`, a detached-HEAD checkout); use the branch capsule to get
-  back onto a branch.
-- The `tags` op now also returns `current` (the checked-out tag, non-empty only on a detached HEAD) so the
-  capsule can show the current state.
+- **New: one dropdown for branches and tags**: the Git panel's branch capsule is now a single native
+  `<select>` that groups local branches, remote branches and tags with `<optgroup>`. Option values carry a
+  `branch:` / `tag:` prefix (a branch and a tag may share a name), which routes the pick to `switchBranch` or
+  to the new `switchTag` (`git switch --detach refs/tags/<name>`, a detached-HEAD checkout).
+- The `tags` op now also returns `current` (the checked-out tag, non-empty only on a detached HEAD), so the
+  capsule reflects the current ref — the tag name instead of `HEAD (no branch)` while on a tag.
 
 ## 0.1.3 (2026-09-03)
 

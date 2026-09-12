@@ -21,8 +21,10 @@ working directory (branch bar + commit graph + changed files + diff view). The U
   each file annotated with its porcelain status code (`XY`).
 - **Branch management**: list local & remote branches (`branches`), switch (`switchBranch`), create
   (`newBranch`), delete (`deleteBranch`), rename (`renameBranch`), merge (`merge`, optional `--no-ff`).
-- **Tags**: list tags (`tags`, annotating the one checked out) and switch to a tag (`switchTag`, a
-  detached-HEAD checkout — use `switchBranch` to get back onto a branch).
+- **Unified branch/tag picker**: one top-bar dropdown groups local branches, remote branches and tags
+  (`<optgroup>`); picking a branch runs `switchBranch`, picking a tag runs `switchTag` (a detached-HEAD
+  checkout). `tags` annotates the checked-out tag, and the capsule reflects the current ref (the tag name
+  instead of `HEAD (no branch)` while on a tag).
 - **Diff & commit**: `diff` (worktree or staged), `stage` / `unstage` / `discard` / `remove`,
   `commit` (selected files or all), `amend`.
 - **History & blame**: `log` (oneline list), `graphLog` (commit graph with parents), `fileLog`
