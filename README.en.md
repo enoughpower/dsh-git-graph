@@ -21,6 +21,8 @@ working directory (branch bar + commit graph + changed files + diff view). The U
   each file annotated with its porcelain status code (`XY`).
 - **Branch management**: list local & remote branches (`branches`), switch (`switchBranch`), create
   (`newBranch`), delete (`deleteBranch`), rename (`renameBranch`), merge (`merge`, optional `--no-ff`).
+- **Tags**: list tags (`tags`, annotating the one checked out) and switch to a tag (`switchTag`, a
+  detached-HEAD checkout — use `switchBranch` to get back onto a branch).
 - **Diff & commit**: `diff` (worktree or staged), `stage` / `unstage` / `discard` / `remove`,
   `commit` (selected files or all), `amend`.
 - **History & blame**: `log` (oneline list), `graphLog` (commit graph with parents), `fileLog`
@@ -93,6 +95,7 @@ Every request is `POST` with `content-type: application/json`. Uniform response:
 | `staged` | `{ path }` | staged-only (index vs HEAD) files |
 | `branches` | `{ path }` | local/remote branches (current, track, ahead/behind) |
 | `switchBranch` | `{ path, name }` | switch branch (remote names fall back to the local short name) |
+| `switchTag` | `{ path, name }` | switch to a tag (detached-HEAD checkout) |
 | `newBranch` | `{ path, name, base?, switch? }` | create a branch, optionally switch to it |
 | `deleteBranch` | `{ path, name, force? }` | delete a branch (`force` → `-D`) |
 | `renameBranch` | `{ path, name, oldName? }` | rename current or a named branch |
@@ -117,7 +120,7 @@ Every request is `POST` with `content-type: application/json`. Uniform response:
 | `pull` | `{ path, rebase? }` | pull (`--ff-only`) |
 | `fetch` | `{ path, prune? }` | fetch remotes |
 | `remotes` | `{ path }` | remotes (fetch/push URL) |
-| `tags` | `{ path }` | tags |
+| `tags` | `{ path }` | tags; `current` is the checked-out tag (non-empty only on a detached HEAD) |
 | `conflicts` | `{ path }` | conflicting files |
 
 ---

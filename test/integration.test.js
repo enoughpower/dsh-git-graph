@@ -171,3 +171,32 @@ test("/fs is not served in git-only mode", async () => {
   assert.equal(res.ok, false);
   assert.equal(res.error.code, "no-route");
 });
+
+test("/git tags reports the tag checked out, and switchTag detaches HEAD", async () => {
+  await gitRun(repo, ["tag", "-a", "v0.0.1", "-m", "first tag"]);
+
+  const onBranch = await post("/git", { op: "tags", path: repo });
+  assert.equal(onBranch.ok, true, JSON.stringify(onBranch));
+  assert.ok(onBranch.value.tags.some((t) => t.name === "v0.0.1"));
+  // On a branch — even one sitting on a tagged commit — nothing is "checked out".
+  assert.equal(onBranch.value.current, "");
+
+  const switched = await post("/git", { op: "switchTag", path: repo, name: "v0.0.1" });
+  assert.equal(switched.ok, true, JSON.stringify(switched));
+
+  const detached = await post("/git", { op: "tags", path: repo });
+  assert.equal(detached.value.current, "v0.0.1");
+  const status = await post("/git", { op: "status", path: repo });
+  assert.match(status.value.branch, /HEAD/, "switching to a tag leaves a detached HEAD");
+
+  const back = await post("/git", { op: "switchBranch", path: repo, name: "main" });
+  assert.equal(back.ok, true, JSON.stringify(back));
+  const restored = await post("/git", { op: "tags", path: repo });
+  assert.equal(restored.value.current, "");
+});
+
+test("/git switchTag surfaces a clean error for an unknown tag", async () => {
+  const res = await post("/git", { op: "switchTag", path: repo, name: "v9.9.9-nope" });
+  assert.equal(res.ok, false);
+  assert.equal(res.error.code, "git-error");
+});

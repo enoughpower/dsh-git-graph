@@ -17,6 +17,8 @@ dsh 插件。宿主半注册 `/git` JSON API，浏览器半在会话区域加一
 - **工作区状态**：`status` 返回分支信息 + 已暂存 / 未暂存 / 未跟踪三类文件，逐文件标注状态码（`XY`）。
 - **分支管理**：列出本地/远程分支（`branches`）、切换（`switchBranch`）、新建（`newBranch`）、
   删除（`deleteBranch`）、重命名（`renameBranch`）、合并（`merge`，可选 `--no-ff`）。
+- **标签切换**：`tags` 列出标签并标注当前检出的标签；`switchTag` 切换到某个标签（检出为 detached HEAD，
+  再用 `switchBranch` 切回分支）。
 - **差异与提交**：`diff`（工作区 / 已暂存）、`stage` / `unstage` / `discard` / `remove`、
   `commit`（提交选中文件或全部）、`amend`。
 - **历史与溯源**：`log`（oneline 列表）、`graphLog`（带父提交的提交图）、`fileLog`（单文件历史）、
@@ -89,6 +91,7 @@ dsh plugin --profile web add dsh-git-graph
 | `staged` | `{ path }` | 仅已暂存（index vs HEAD）文件 |
 | `branches` | `{ path }` | 本地/远程分支（当前、track 信息、ahead/behind） |
 | `switchBranch` | `{ path, name }` | 切换分支（远程名自动退化为本地短名） |
+| `switchTag` | `{ path, name }` | 切换到标签（检出为 detached HEAD） |
 | `newBranch` | `{ path, name, base?, switch? }` | 新建分支，`switch` 为真时切过去 |
 | `deleteBranch` | `{ path, name, force? }` | 删除分支（`force` → `-D`） |
 | `renameBranch` | `{ path, name, oldName? }` | 重命名当前/指定分支 |
@@ -113,7 +116,7 @@ dsh plugin --profile web add dsh-git-graph
 | `pull` | `{ path, rebase? }` | 拉取（`--ff-only`） |
 | `fetch` | `{ path, prune? }` | 抓取远端 |
 | `remotes` | `{ path }` | 远端列表（fetch/push URL） |
-| `tags` | `{ path }` | 标签列表 |
+| `tags` | `{ path }` | 标签列表；`current` 为当前检出的标签（仅 detached HEAD 时非空） |
 | `conflicts` | `{ path }` | 冲突文件列表 |
 
 ---

@@ -49,7 +49,7 @@ s = s.split(oldBin).join(newBin);
 // (no MutationObserver); rc.2 keeps the full CodeMirror editor.
 const oldDshCm = `let dshCm = (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;`;
 const newDshCm = `let dshCm = (window.__DSH_BOOT__ && Array.isArray(window.__DSH_BOOT__.batches)) ? null : (window.DshCodeMirror && typeof window.DshCodeMirror.create === "function") ? window.DshCodeMirror : null;
-    console.info("[dsh-git-graph] bundle marker: 20260903-e (mobile commit bar)");`;
+    console.info("[dsh-git-graph] bundle marker: 20260912-a (tag switch)");`;
 const c3 = s.split(oldDshCm).length - 1;
 if (c3 !== 1) throw new Error(`expected dshCm definition to appear once, found ${c3}`);
 s = s.split(oldDshCm).join(newDshCm);
@@ -238,5 +238,61 @@ s = s.split(mbarOld).join(mbarOld + `
       ".dshGitCommitBar .dshGitOut,.dshGitCommitBar .dshGitErr{max-height:60px;font-size:11px}",
       ".dshGitCommitBar{gap:6px}",`);
 
+
+// Patch 14: tag switching. The panel could LIST tags (op `tags`) but never
+// check one out. Mirror the branch picker: a second capsule whose invisible
+// native <select> lists the repository's tags and calls the new `switchTag`
+// op (`git switch --detach refs/tags/<name>`). The host `tags` op now also
+// reports the tag HEAD sits on exactly, so the capsule can show which tag is
+// currently checked out after a detached checkout.
+const tagStateAnchor = `const [branches, setBranches] = react.useState([]);`;
+if (s.split(tagStateAnchor).length !== 2) throw new Error("branches state anchor not found");
+s = s.split(tagStateAnchor).join(tagStateAnchor + `
+      const [tags, setTags] = react.useState([]);
+      const [currentTag, setCurrentTag] = react.useState("");`);
+
+const tagRefAnchor = `const branchSelectRef = react.useRef(null);`;
+if (s.split(tagRefAnchor).length !== 2) throw new Error("branchSelectRef anchor not found");
+s = s.split(tagRefAnchor).join(tagRefAnchor + `
+      const tagSelectRef = react.useRef(null);`);
+
+const tagRefreshOld = `        const [st, br, gr, cf] = await Promise.all([
+          gitCall("status", { path: p }),
+          gitCall("branches", { path: p }),
+          gitCall("graphLog", { path: p, n: 500 }),
+          gitCall("conflicts", { path: p }),
+        ]);`;
+const tagRefreshNew = `        const [st, br, gr, cf, tg] = await Promise.all([
+          gitCall("status", { path: p }),
+          gitCall("branches", { path: p }),
+          gitCall("graphLog", { path: p, n: 500 }),
+          gitCall("conflicts", { path: p }),
+          gitCall("tags", { path: p }),
+        ]);`;
+if (s.split(tagRefreshOld).length !== 2) throw new Error("refresh Promise.all anchor not found");
+s = s.split(tagRefreshOld).join(tagRefreshNew);
+
+const tagConflictsAnchor = `        if (cf.ok) setConflicts(cf.value.files);`;
+if (s.split(tagConflictsAnchor).length !== 2) throw new Error("conflicts anchor not found");
+s = s.split(tagConflictsAnchor).join(tagConflictsAnchor + `
+        if (tg.ok) { setTags(tg.value.tags); setCurrentTag(tg.value.current || ""); }`);
+
+const tagCssAnchor = `".dshGitBranch{position:relative}",`;
+if (s.split(tagCssAnchor).length !== 2) throw new Error("tag chip css anchor not found");
+s = s.split(tagCssAnchor).join(tagCssAnchor + `
+      ".dshGitTagActive{border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-state-business-primary)}",`);
+
+const tagCapsule = `          tags.length > 0 || currentTag
+            ? jsx("span", { className: "dshGitBranch dshGitBranchBtn" + (currentTag ? " dshGitTagActive" : ""), onClick: () => { const el = tagSelectRef.current; if (el) { try { el.showPicker ? el.showPicker() : el.click(); } catch { try { el.click(); } catch {} } } }, title: currentTag ? "切换 tag（当前：" + currentTag + "）" : "切换 tag", children: [
+                jsx("span", { className: "dshGitBranchName", children: currentTag || "tag" }),
+                jsx("span", { className: "dshGitBranchCaret", children: "\\u25BE" }),
+                jsx("select", { ref: tagSelectRef, className: "dshGitBranchSelect", value: currentTag || "", onClick: (e) => { e.stopPropagation(); }, onChange: (e) => { const v = e.target.value; if (v && v !== currentTag) runMutation("switchTag", { name: v }); }, children: [jsx("option", { value: "", children: "切换 tag…" }), ...tags.map((t) => jsx("option", { key: t.name, value: t.name, children: t.name + (t.name === currentTag ? "（当前）" : "") }))] }),
+              ] })
+            : null,
+`;
+const tagUpstreamAnchor = `          upstream ? jsx("span", { className: "dshGitUpstream", children: upstream }) : null,`;
+if (s.split(tagUpstreamAnchor).length !== 2) throw new Error("upstream anchor not found");
+s = s.split(tagUpstreamAnchor).join(tagCapsule + tagUpstreamAnchor);
+
 writeFileSync(file, s);
-console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive");
+console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive + tag switch");

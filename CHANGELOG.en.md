@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.1.4 (unreleased)
+
+- **New: tag switching**: the Git panel top bar gains a tag capsule using the same interaction as the branch
+  capsule (an invisible native `<select>` overlay that opens the platform picker). It lists the repository's
+  tags and checks out the selected one (`switchTag`, a detached-HEAD checkout); use the branch capsule to get
+  back onto a branch.
+- The `tags` op now also returns `current` (the checked-out tag, non-empty only on a detached HEAD) so the
+  capsule can show the current state.
+
 ## 0.1.3 (2026-09-03)
 
 - **Mobile adaptation (Git view)**: on narrow screens the panel auto-stacks to a single column; the history band is fixed to ~5 rows (178px); the bottom commit bar stacks instead of cramming the status card; the bottom safe area is reserved (fixes the doubled safe-area padding on both the root and the commit bar).
