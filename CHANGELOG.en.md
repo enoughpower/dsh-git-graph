@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.1.4 (unreleased)
+## 0.1.4 (2026-09-14)
 
 - **New: one dropdown for branches and tags**: the Git panel's branch capsule is now a single native
   `<select>` that groups local branches, remote branches and tags with `<optgroup>`. Option values carry a
