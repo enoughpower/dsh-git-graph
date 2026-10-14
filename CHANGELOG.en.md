@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 0.1.8 (2026-10-14)
+
+- **New: discover and switch nested git repositories.** The Git panel scans child/grandchild directories
+  of the session's working directory (depth defaults to 2, clamped to 1-4), lists the repositories it
+  finds in a new top-bar "repository" dropdown, groups linked worktrees, filters submodule ghost entries,
+  and caps the scan (<=50 repos, <=5000 directory entries, <=10s). When the session root is not a
+  repository the first child repository is entered automatically. Options are labelled name-first with
+  location disambiguation and mark detached HEADs and prunable worktrees, plus a truncation notice. Adds
+  the host `listRepos` op.
+- Unified top-bar pill structure: the repository and branch capsules share one style, and the repository
+  icon is now inline SVG (no longer depending on a primitives icon export, so a dsh rename cannot crash
+  the view). Fixed native `<select>` popup readability under the transparent overlay (white-on-white
+  options, blank optgroup labels).
+- Tests: fixed the 8.3 short-name case skip logic on macOS (`/var` -> `/private/var` is a symlink, not a
+  short name); it now skips unless the path contains a `~<digit>` segment. 80 pass / 0 fail / 1 skip
+  locally.
+
 ## 0.1.7 (2026-09-22)
 
 - **The commit graph no longer shows stash nodes.** `graphLog` runs `git log --all`, and a stash also

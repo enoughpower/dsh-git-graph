@@ -502,13 +502,13 @@ describe("scanRepoDirs 目录上限判定顺序", () => {
 test("入口 realpath 归一化：8.3 短名根展开为长名基准（无法构造时跳过）", async (t) => {
   const dir = await mkdtemp(join(tmpdir(), "dsh-realpath-"));
   try {
-    const long = await realpath(dir);
-    if (normalizeRepoPath(dir) === normalizeRepoPath(long)) {
-      t.skip(`本机临时目录已是长名形态（${dir}），无法构造 8.3 短名场景`);
+    // 8.3 短名形态特征：路径段内出现 `~数字`。不能用 dir !== realpath(dir) 判断——
+    // macOS 的 /var -> /private/var 符号链接同样会让两者不同，却与 8.3 短名无关。
+    if (!/~\d/.test(normalizeRepoPath(dir))) {
+      t.skip(`本机临时目录不是 8.3 短名形态（${dir}），无法构造该场景`);
       return;
     }
-    // 短名形态特征：路径段内出现 `~数字`
-    assert.match(dir, /~\d/, "预期临时目录包含 8.3 短名段");
+    const long = await realpath(dir);
     // fs/promises 的 realpath 必须把短名展开为长名（宿主入口依赖该行为做 in-root 判定）
     assert.equal(normalizeRepoPath(await realpath(dir)), normalizeRepoPath(long));
     // 归一化基准一致：长名形态下同一路径既是根本身，也不会被误判为根内子目录
