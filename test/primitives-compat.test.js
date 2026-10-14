@@ -17,9 +17,14 @@ import { readFileSync } from "node:fs";
 const bundle = readFileSync(new URL("../lib/client.js", import.meta.url), "utf8");
 const patchScript = readFileSync(new URL("../scripts/patch-client.mjs", import.meta.url), "utf8");
 
-/** Pull the runtime fallback expression out of the bundle. */
+/**
+ * Pull the runtime fallback expression out of the bundle.
+ *
+ * 行尾必须容忍 CRLF：本仓库 `core.autocrlf=true`，Windows 检出为 `\r\n`，
+ * 只匹配 `;\n` 会在工作树上失配（bundle 内的 BranchIcon 形态保持不变）。
+ */
 function extractBranchIconResolver(source) {
-  const m = source.match(/const BranchIcon = ([\s\S]*?);\n/);
+  const m = source.match(/const BranchIcon = ([\s\S]*?);\r?\n/);
   assert.ok(m, "bundle must define a BranchIcon resolver");
   return m[1];
 }

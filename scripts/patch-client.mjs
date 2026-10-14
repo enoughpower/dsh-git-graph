@@ -166,6 +166,11 @@ if (s.split(selCssAnchor).length !== 2) throw new Error("css global anchor not f
 s = s.split(selCssAnchor).join(selCssAnchor + `
       ".dshGitBranch{position:relative}",
       ".dshGitBranchSelect{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;background:transparent;color:transparent;appearance:none;-webkit-appearance:none;font-size:16px}",
+      // 原生弹层条目颜色继承 select：透明叠加写法使弹层文字透明，option 需显式主题令牌配色。
+      ".dshGitBranchSelect option{color:var(--dsw-alias-label-primary);background-color:var(--dsw-alias-bg-base)}",
+      // optgroup 分组标签（本地分支/远程分支/标签）同样继承 select 的透明色，需一并显式
+      // 配色（弱化三级色 + 正常字形），否则弹层每个分组开头出现一行「空白」。
+      ".dshGitBranchSelect optgroup{color:var(--dsw-alias-label-tertiary);background-color:var(--dsw-alias-bg-base);font-style:normal;font-weight:600}",
       ".dshGitBranchMenu{display:none !important}",`);
 
 // Patch 10: always refresh the injected <style> tag. The old guard
@@ -379,5 +384,168 @@ const branchIconUses = s.split(iconUse).length - 1;
 if (branchIconUses !== 3) throw new Error(`expected 3 branch-icon usages, found ${branchIconUses}`);
 s = s.split(iconUse).join("BranchIcon,");
 
+// Patch 18: multi-repo switcher. The panel used to be bound to the single session
+// working directory; the host now exposes `listRepos` (depth-2 scan + worktree
+// grouping), so the top bar gains a repository capsule between the Git title and
+// the branch capsule, and the state flow picks the active repository. Exactly two
+// effects: [sessionCwd] fires listRepos, [sessionCwd, repos] decides the selection
+// — one effect holding both would re-enter on every repos reference change and
+// storm the host with requests. The response stores the sessionCwd it was
+// requested with as a freshness tag, so a previous session's repositories can
+// never hijack the cwd before the new response lands (a realpath-normalised root
+// cannot be compared instead: the two forms coexist on Windows). listRepos
+// failures clear the list and fall back to the current UI. New code keeps Chinese
+// comments (project convention). Anchors are taken from the post-Patch-17 text.
+const repoStateAnchor = `      const [selfRepo, setSelfRepo] = react.useState(false);`;
+if (s.split(repoStateAnchor).length !== 2) throw new Error("repo state anchor not found");
+s = s.split(repoStateAnchor).join(repoStateAnchor + `
+      // 多子仓切换器状态：repos 为宿主 listRepos 返回的仓库列表（按 relPath 排序、
+      // 根仓库条目最前），rootIsRepo 标记会话根自身是否就是仓库，reposTruncated
+      // 保存截断原因（非空即需在 UI 提示），reposTag 记录该批响应所对应的
+      // sessionCwd，供选仓 effect 做新鲜度守卫（防上一会话脏数据劫持 cwd）。
+      const [repos, setRepos] = react.useState([]);
+      const [rootIsRepo, setRootIsRepo] = react.useState(false);
+      const [reposTruncated, setReposTruncated] = react.useState("");
+      const [reposTag, setReposTag] = react.useState("");
+      // 「用户已手动选择子仓」标记：作用域 = 当前 sessionCwd，会话根变化时复位；
+      // 跨会话不复位会错误抑制新会话的「自动进入首个子仓」，cwd 停在非仓库根报错。
+      const repoPickedRef = react.useRef(false);`);
+
+const repoSelectRefAnchor = `      const branchSelectRef = react.useRef(null);`;
+if (s.split(repoSelectRefAnchor).length !== 2) throw new Error("repo select ref anchor not found");
+s = s.split(repoSelectRefAnchor).join(repoSelectRefAnchor + `
+      // 仓库胶囊的原生 select 引用：胶囊主体的点击兜底走 showPicker()。
+      const repoSelectRef = react.useRef(null);`);
+
+const repoResetAnchor = `      const [showAllFiles, setShowAllFiles] = react.useState(false);`;
+if (s.split(repoResetAnchor).length !== 2) throw new Error("repo resetView anchor not found");
+s = s.split(repoResetAnchor).join(repoResetAnchor + `
+
+      // 切换仓库时清空右栏与选择残留（共 19 项）。message 与 textarea 内联高度必须
+      // 一并重置：提交说明草稿不清会被误提交到新仓库；而受控 textarea 的高度只在
+      // onChange 时重算，setMessage("") 的受控值变化不触发 onChange，不清内联高度
+      // 会残留一个高的空输入框。
+      // 有意保留：newBranchName / mergeTarget / confirmDelete / modal / historyH
+      // （面板级偏好与瞬时 UI 态，切仓库无残留语义）。
+      const resetView = () => {
+        setDiffFile(null);
+        diffFileRef.current = null;
+        setDiffText("");
+        setDiffTruncated(false);
+        setDiffStaged(false);
+        setSelectedCommit(null);
+        setCommitFiles(null);
+        setCommitFile(null);
+        setSelectedCommitText("");
+        setCommitDiffTruncated(false);
+        setRightTab("diff");
+        setFileViewText("");
+        setFileViewHeadText("");
+        setFileLog([]);
+        setBlameLines([]);
+        setError(null);
+        setOutput("");
+        setMessage("");
+        if (msgRef.current) msgRef.current.style.height = "auto";
+      };
+
+      // 用户手动选择子仓：置「已手动选择」标记（抑制随后的自动选首仓），先清残留
+      // 再切 cwd。后续所有 op 均以 activePath（= cwd）为 path，故自动跟随新仓库。
+      const pickRepo = (path) => {
+        if (!path || path === cwd) return;
+        repoPickedRef.current = true;
+        resetView();
+        setCwd(path);
+      };
+
+      // 仓库胶囊 option 文案：仓库名优先 \`name（branch）\`；detached（无分支）显示「游离 短哈希」；
+      // 位置消歧：relPath 与显示名不一致时（根仓显示「根」、嵌套仓显示相对路径）追加「· 位置」；
+      // prunable 追加失效警示。
+      const repoOptionText = (r) => {
+        const head = r.branch ? r.branch : "游离" + (r.head ? " " + r.head : "");
+        const disp = r.name || r.relPath;
+        const where = r.relPath === "." ? "根" : r.relPath;
+        const tail = where !== disp ? " · " + where : "";
+        return disp + "（" + head + "）" + tail + (r.prunable ? " \\u26A0 疑似失效" : "");
+      };
+
+      // 仓库胶囊图标（与分支胶囊结构统一：图标 + 名称 + 折叠符）。用内联 SVG 而非
+      // primitives 图标导出——图标名曾在 dsh 升级时被改名（BranchIcon 被迫做回退解析），
+      // 内联可免疫此类外部变动。文件夹剪影，currentColor 继承胶囊文字色。
+      const RepoIcon = ({ size }) => jsx("svg", { width: size, height: size, viewBox: "0 0 16 16", fill: "currentColor", "aria-hidden": true, children: jsx("path", { d: "M2.5 2h3.6c.4 0 .8.2 1.1.5l1.2 1.2c.3.3.7.5 1.1.5h4c.8 0 1.5.7 1.5 1.5v6.8c0 .8-.7 1.5-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9C1 2.7 1.7 2 2.5 2z" }) });
+
+      // 当前选中的仓库条目：优先精确匹配 cwd（用户切换或自动选首仓后必命中），
+      // 退化到首条目（根仓库条目 relPath="." 恒排最前）。
+      const repoCurrent = repos.find((r) => r.path === cwd) || repos[0] || null;`);
+
+const repoEffectAnchor = `        if (sessionCwd) setCwd(sessionCwd);`;
+if (s.split(repoEffectAnchor).length !== 2) throw new Error("repo listRepos effect anchor not found");
+s = s.split(repoEffectAnchor).join(repoEffectAnchor + `
+        // 会话根变化：同步清空上一会话的仓库列表与新鲜度标签，旧会话数据不再渲染
+        // 切换器（新鲜度守卫由此转为纵深防御）；「已手动选择」标记也随之复位。
+        setRepos([]);
+        setReposTag("");
+        repoPickedRef.current = false;
+        if (!sessionCwd) { setRootIsRepo(false); setReposTruncated(""); return; }
+        // 本 effect 只发起 listRepos（依赖里不含 repos，否则 repos 引用变化会重入
+        // 触发请求风暴）。闭包捕获发起请求时的 sessionCwd 作为 tag；响应落地时随
+        // repos 一并保存，供选仓 effect 判断新鲜度。tag 与 sessionCwd 同源同形态，
+        // 精确相等即可（响应 root 经宿主 realpath 归一化，形态可能与 sessionCwd 不同）。
+        const tag = sessionCwd;
+        let stale = false;
+        gitCall("listRepos", { path: sessionCwd }).then((r) => {
+          // 乱序防护：会话根在响应返回前又变了，本响应已过期，直接丢弃。
+          if (stale) return;
+          if (!r || !r.ok) {
+            // 请求失败：清空列表与 tag，回落现状 UI（不沿用旧会话数据）。
+            setRepos([]);
+            setRootIsRepo(false);
+            setReposTruncated("");
+            setReposTag("");
+            return;
+          }
+          const v = r.value || {};
+          setRootIsRepo(v.rootIsRepo === true);
+          setReposTruncated(typeof v.truncated === "string" ? v.truncated : "");
+          setRepos(Array.isArray(v.repos) ? v.repos : []);
+          setReposTag(tag);
+        });
+        return () => { stale = true; };`);
+
+const repoPickEffectAnchor = `      const activePath = cwd;`;
+if (s.split(repoPickEffectAnchor).length !== 2) throw new Error("repo pick effect anchor not found");
+s = s.split(repoPickEffectAnchor).join(`
+      // 选仓 effect（双 effect 结构之二）：只做选仓判断，绝不发请求。首判 tag 与
+      // 当前 sessionCwd 相等（新鲜度守卫）才允许动作——sessionCwd 变化后、新响应
+      // 到达前的窗口内 repos/rootIsRepo 仍是上一会话的值，不设守卫会把 cwd 劫持到
+      // 旧会话的子仓；依赖 [sessionCwd, repos] 同时使选仓动作与 effect 声明顺序无关。
+      react.useEffect(() => {
+        if (!reposTag || reposTag !== sessionCwd) return; // 旧会话脏数据：本轮 no-op
+        if (repos.length === 0) return;
+        if (rootIsRepo) return;                           // 根即仓库：cwd 保持会话根
+        if (repoPickedRef.current) return;                // 用户已手动选择：不覆盖
+        // 会话根非仓库且有子仓：自动进入第一个子仓（顺带修复现状「非仓库根直接报错」）。
+        resetView();
+        setCwd(repos[0].path);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [sessionCwd, repos]);
+
+      const activePath = cwd;`);
+
+const repoCapsuleAnchor = `          branch || currentTag`;
+if (s.split(repoCapsuleAnchor).length !== 2) throw new Error("repo capsule anchor not found");
+s = s.split(repoCapsuleAnchor).join(`          repos.length > 0 && (repos.length > 1 || !rootIsRepo)
+            ? jsx("span", { className: "dshGitRepo dshGitBranch dshGitBranchBtn", onClick: () => { const el = repoSelectRef.current; if (el) { try { el.showPicker ? el.showPicker() : el.click(); } catch { try { el.click(); } catch {} } } }, title: "切换仓库（当前：" + (repoCurrent ? repoCurrent.path : cwd) + "）" + (reposTruncated ? "｜⚠ 列表已截断：" + reposTruncated : ""), children: [
+                jsx(RepoIcon, { size: 14 }),
+                jsx("span", { className: "dshGitBranchName", children: repoCurrent ? (repoCurrent.name || repoCurrent.relPath) : "." }),
+                jsx("span", { className: "dshGitBranchCaret", children: "\\u25BE" }),
+                jsx("select", { ref: repoSelectRef, className: "dshGitBranchSelect", value: repoCurrent ? repoCurrent.path : "", onClick: (e) => { e.stopPropagation(); }, onChange: (e) => { pickRepo(e.target.value); }, children: [
+                  reposTruncated ? jsx("option", { key: "truncated", value: "", disabled: true, children: "⚠ 列表已截断：" + reposTruncated }) : null,
+                  repos.map((r) => jsx("option", { key: r.path, value: r.path, title: r.path, children: repoOptionText(r) })),
+                ] }),
+              ] })
+            : null,
+          branch || currentTag`);
+
 writeFileSync(file, s);
-console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive + tag switch + self-hosting guard + 0.1.6 session cwd + 0.1.7 branch icon");
+console.log("patched client bundle: openFile guard + wording + alpha.5 cm fallback + git-only tabs + width handles + mobile responsive + tag switch + self-hosting guard + 0.1.6 session cwd + 0.1.7 branch icon + multi-repo switcher");
