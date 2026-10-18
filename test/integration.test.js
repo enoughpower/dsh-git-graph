@@ -159,6 +159,31 @@ test("/git commit of selected files records a commit and clears it", async () =>
   assert.deepEqual(status.value.untracked.map((f) => f.path), ["b.txt"]);
 });
 
+test("/git keeps non-ASCII (Chinese) paths readable and stageable", async () => {
+  const name = "中文 测试文档.md";
+  const file = join(repo, name);
+  await writeFile(file, "中文\n");
+  try {
+    const status = await post("/git", { op: "status", path: repo });
+    assert.equal(status.ok, true, JSON.stringify(status));
+    // Before the fix git returned the name C-quoted with octal escapes.
+    assert.deepEqual(status.value.untracked.map((f) => f.path).sort(), [name, "b.txt"].sort());
+
+    const staged = await post("/git", { op: "stage", path: repo, files: [name] });
+    assert.equal(staged.ok, true, JSON.stringify(staged));
+
+    const stagedOnly = await post("/git", { op: "staged", path: repo });
+    assert.equal(stagedOnly.ok, true, JSON.stringify(stagedOnly));
+    assert.deepEqual(stagedOnly.value.files.map((f) => f.path), [name]);
+
+    const after = await post("/git", { op: "status", path: repo });
+    assert.deepEqual(after.value.staged.map((f) => f.path), [name]);
+  } finally {
+    await gitRun(repo, ["reset", "-q"]);
+    await rmRetry(file);
+  }
+});
+
 test("/git log lists both commits", async () => {
   const res = await post("/git", { op: "log", path: repo, n: 10 });
   assert.equal(res.ok, true);
