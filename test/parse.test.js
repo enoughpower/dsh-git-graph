@@ -81,6 +81,30 @@ test("parsePorcelainLine splits a rename arrow and keeps the original", () => {
   assert.equal(r.staged, true);
 });
 
+test("parsePorcelainLine decodes git's octal-escaped UTF-8 paths", () => {
+  // git default (core.quotepath=true) C-quotes non-ASCII names; the octal
+  // escapes are UTF-8 bytes, e.g. 中 = E4 B8 AD = \344\270\255.
+  const r = parsePorcelainLine(
+    '?? "\\346\\265\\213\\350\\257\\225\\347\\224\\250\\344\\276\\213.md"',
+  );
+  assert.equal(r.code, "??");
+  assert.equal(r.path, "测试用例.md");
+  assert.equal(r.original, "");
+});
+
+test("parsePorcelainLine decodes escaped quotes and backslashes", () => {
+  const r = parsePorcelainLine(' M "a\\"b\\\\c.txt"');
+  assert.equal(r.path, 'a"b\\c.txt');
+  assert.equal(r.code, "M");
+});
+
+test("parsePorcelainRename decodes quoted octal paths", () => {
+  const r = parsePorcelainRename('R  "old\\344\\276\\247.txt" -> "new\\344\\276\\247.txt"');
+  assert.equal(r.original, "old侧.txt");
+  assert.equal(r.path, "new侧.txt");
+  assert.equal(r.code, "R");
+});
+
 test("parsePorcelainRename handles quoted paths with spaces", () => {
   const r = parsePorcelainRename('R  "a b.txt" -> "c d.txt"');
   assert.equal(r.original, "a b.txt");
