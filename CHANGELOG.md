@@ -1,5 +1,14 @@
 # 更新说明（CHANGELOG）
 
+## 0.1.9（2026-10-27）
+
+- **修复：Git 面板中非 ASCII 文件名显示为八进制转义**。`git status --porcelain` 默认
+  （`core.quotepath=true`）会把中文等非 ASCII 路径 C 风格转义成 `"\346\265\213..."`，面板既显示不出
+  真实文件名，暂存/取消暂存时还会把这个转义串原样传回 git。现在所有 git 命令都以
+  `-c core.quotepath=false` 运行，并在 porcelain 解析器里解码 git 的 C 风格引号（八进制 UTF-8 字节
+  以及 `\a \b \f \n \r \t \v \\ \"`），即使用户显式开启 `core.quotepath` 也能正确显示。
+- 测试：新增八进制 / 引号 / 反斜杠解码单测，以及「中文文件名经过 status → stage → staged」的集成测试。
+
 ## 0.1.8（2026-10-14）
 
 - **新增：发现并切换子代码库（nested repos）**。Git 面板会扫描当前会话工作目录下的子/孙目录

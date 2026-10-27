@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.1.9 (2026-10-27)
+
+- **Fix: non-ASCII filenames showed as octal escapes in the Git panel.** `git status --porcelain`
+  C-quotes non-ASCII paths by default (`core.quotepath=true`), so a Chinese filename appeared as
+  `"\346\265\213..."`, and the panel sent that escaped string back to git for stage/unstage. Every git
+  command now runs with `-c core.quotepath=false`, and the porcelain parser decodes git's C-style
+  quoting (octal UTF-8 bytes plus `\a \b \f \n \r \t \v \\ \"`), so output stays readable even when a
+  user explicitly enables `core.quotepath`.
+- Tests: added unit tests for octal/quote/backslash decoding and an integration test that a Chinese
+  filename survives status -> stage -> staged.
+
 ## 0.1.8 (2026-10-14)
 
 - **New: discover and switch nested git repositories.** The Git panel scans child/grandchild directories
